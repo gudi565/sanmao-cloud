@@ -1,26 +1,281 @@
 @import "tailwindcss";
 
+/* ============================================================
+   三猫云 · 暗夜翡翠设计系统
+   ============================================================ */
+
+@theme {
+  /* —— 主色板（已锁）—— */
+  --color-bg: #06140e; /* 墨绿黑 主背景 */
+  --color-bg2: #0a2118; /* 深翡翠 次背景 */
+  --color-primary: #0e7c5a; /* 翡翠绿 品牌主色 */
+  --color-primary2: #13a06b; /* 玉绿 */
+  --color-accent: #5bf0b0; /* 荧光薄荷 高光 */
+  --color-gold: #c9a86a; /* 香槟金 点缀 */
+  --color-ink: #ecf5ef; /* 暖白 文字 */
+  --color-dim: #8fa89d; /* 弱化灰绿 */
+
+  /* 半透明色（同时供 Tailwind 工具类与自定义 CSS 使用） */
+  --color-line: rgba(91, 240, 176, 0.14);
+  --color-line-strong: rgba(91, 240, 176, 0.3);
+  --color-surface: rgba(14, 124, 90, 0.08);
+  --color-surface-strong: rgba(14, 124, 90, 0.14);
+
+  /* —— 字体 —— */
+  --font-display: var(--font-sora), "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", sans-serif;
+  --font-sans: var(--font-inter), "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", system-ui, sans-serif;
+
+  /* —— 缓动 —— */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* —— 动画 —— */
+  --animate-float: float 8s var(--ease-in-out) infinite;
+  --animate-pulse-glow: pulse-glow 4s var(--ease-in-out) infinite;
+  --animate-spin-slow: spin 24s linear infinite;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 半透明色（非 Tailwind token，供工具类直接引用） */
+  --surface: rgba(14, 124, 90, 0.08);
+  --surface-strong: rgba(14, 124, 90, 0.14);
+  --line: rgba(91, 240, 176, 0.14);
+  --line-strong: rgba(91, 240, 176, 0.3);
+  --shadow-accent: 0 0 60px -12px rgba(91, 240, 176, 0.45);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  border-color: var(--line);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: auto; /* 交给 Lenis 接管平滑滚动 */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(1200px 800px at 82% -12%, rgba(91, 240, 176, 0.07), transparent 60%),
+    radial-gradient(1000px 720px at -12% 8%, rgba(14, 124, 90, 0.12), transparent 55%),
+    var(--color-bg);
+  background-attachment: fixed;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* —— 选区 / 滚动条 —— */
+::selection {
+  background: rgba(91, 240, 176, 0.28);
+  color: #ffffff;
+}
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(14, 124, 90, 0.5);
+  border-radius: 999px;
+  border: 2px solid var(--color-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(19, 160, 107, 0.7);
+}
+
+/* ============================================================
+   自定义光标（仅精确指针设备）
+   ============================================================ */
+@media (hover: hover) and (pointer: fine) {
+  body,
+  a,
+  button {
+    cursor: none;
+  }
+}
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 9999px;
+  opacity: 0;
+  will-change: transform;
+}
+.cursor-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--color-accent);
+  box-shadow: 0 0 12px rgba(91, 240, 176, 0.9);
+}
+.cursor-ring {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(91, 240, 176, 0.45);
+  transition: width 0.3s var(--ease-out-expo),
+    height 0.3s var(--ease-out-expo), background-color 0.3s, border-color 0.3s,
+    opacity 0.3s;
+}
+.cursor-ring.is-hover {
+  width: 66px;
+  height: 66px;
+  background: rgba(91, 240, 176, 0.08);
+  border-color: rgba(91, 240, 176, 0.85);
+}
+.cursor-ring.is-down {
+  width: 28px;
+  height: 28px;
+}
+@media (hover: none), (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   工具类
+   ============================================================ */
+@layer components {
+  .glass {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+  }
+  .glass-strong {
+    background: var(--surface-strong);
+    border: 1px solid var(--line-strong);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+  .text-gradient {
+    background: linear-gradient(180deg, #ffffff 0%, var(--color-accent) 135%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-gold {
+    background: linear-gradient(100deg, var(--color-gold), #f4e3bd 50%, var(--color-gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .glow-accent {
+    box-shadow: var(--shadow-accent);
+  }
+  .hairline {
+    border: 1px solid var(--line);
+  }
+  /* 网格底纹 */
+  .bg-grid {
+    background-image: linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  /* 噪点叠层 */
+  .noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    z-index: 1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .reveal-init {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0);
+  }
+}
+
+/* ============================================================
+   关键帧
+   ============================================================ */
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -22px, 0);
+  }
+}
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes loader-bar {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-inner {
+  animation: marquee linear infinite;
+}
+.mask-x {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 7%,
+    #000 93%,
+    transparent
+  );
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+
+/* ============================================================
+   降级：尊重「减少动态效果」
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal-init {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .cursor-dot,
+  .cursor-ring {
+    display: none !important;
+  }
+  .marquee-inner {
+    animation: none !important;
+  }
 }

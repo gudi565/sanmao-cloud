@@ -1,0 +1,50 @@
+// 三猫云 —— 用户与认证相关数据模型（SQLite）
+// 运行 `npm run db:push` 生成/同步本地数据库
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// 注册用户
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String?  @unique
+  phone        String?  @unique
+  password     String
+  tokenVersion   Int      @default(0) // 改密后递增，使旧 JWT 会话失效
+  failedAttempts Int      @default(0) // 连续登录失败次数
+  lockedUntil    DateTime?              // 锁定截止时间（超过阈值后）
+  createdAt      DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// 验证码（开发模式打印到控制台；生产可替换为真实短信/邮件通道）
+model VerificationCode {
+  id        String   @id @default(cuid())
+  account   String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([account])
+}
+
+/// 审计日志：记录关键安全事件（注册/登录/登录失败/登出/改密/锁定）
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String? // 未登录事件（如账号不存在的登录失败）为空
+  action    String // register | login | login_failed | logout | reset_password | account_locked
+  ip        String?
+  detail    String? // 可读补充（如失败原因、锁定时长）
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}
