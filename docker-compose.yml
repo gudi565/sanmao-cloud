@@ -1,0 +1,19 @@
+# 三猫云 · 自有服务器部署(docker compose)
+# 用法见 部署-自有服务器.md
+services:
+  web:
+    build: .
+    image: sanmao-cloud
+    container_name: sanmao-cloud
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # SQLite 落到持久卷(覆盖 .env 里的 file:./dev.db)
+      DATABASE_URL: "file:/data/dev.db"
+      PORT: "3000"
+    ports:
+      # 只绑本机,由前置 nginx 反代到 80/443;
+      # 暂时不用 nginx 的话,改成 "0.0.0.0:80:3000" 即可用 IP 直接访问
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/data
