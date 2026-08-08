@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商务邮件 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>商务邮件 prompt</h1><p class="sub">输入场景与要点，一键生成结构化系统提示词与可填空模板</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="f-scene">场景</label>
+<select id="f-scene">
+<option value="客户开发">客户开发 (Cold Outreach)</option>
+<option value="催办">催办 (Follow-up)</option>
+<option value="求职">求职 (Job Application)</option>
+<option value="婉拒">婉拒 (Polite Decline)</option>
+<option value="感谢">感谢 (Thank-you)</option>
+<option value="请假">请假 (Leave Request)</option>
+<option value="投诉">投诉 (Complaint)</option>
+</select></div>
+<div class="field"><label for="f-points">核心要点</label>
+<textarea id="f-points" rows="4" placeholder="诉求、相关背景、关键数据/时间、期望结果"></textarea></div>
+<div class="field"><label for="f-rel">收件人关系</label>
+<select id="f-rel">
+<option value="平级">平级</option>
+<option value="上级">上级</option>
+<option value="客户">客户</option>
+<option value="陌生">陌生</option>
+</select></div>
+<div class="field"><label for="f-tone">语气</label>
+<select id="f-tone">
+<option value="正式严谨">正式严谨</option>
+<option value="友好亲切">友好亲切</option>
+<option value="强硬坚定">强硬坚定</option>
+<option value="委婉">委婉</option>
+</select></div>
+<div class="field"><label for="f-lang">语言</label>
+<select id="f-lang">
+<option value="中文">中文</option>
+<option value="英文">英文</option>
+</select></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card">
+<div class="card-hd"><span class="card-tt">System Prompt + 填空模板</span><button class="cbtn" data-copy="prompt">复制</button></div>
+<div class="card-bd" id="out-prompt"></div>
+</div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>主题行决定打开率——优先打磨那 3 个备选；CTA 必须具体到时间或动作。</p></div></footer>
+<script>
+const SCENE = {
+  '客户开发': {
+    name: `客户开发 (Cold Outreach)`,
+    guide: `钩子须引用对方近期动态或具体痛点(非泛泛赞美)；价值主张用 1 句可量化的话概括；CTA 给出低门槛具体动作(如"本周三 15 分钟电话")，避免"有空聊聊"式模糊邀约。`,
+    subjectHint: `痛点 + 数字 / 个人化引用`,
+    ctaHint: `15 分钟电话 / 邮件回复确认时间`
+  },
+  '催办': {
+    name: `催办 (Follow-up)`,
+    guide: `开头引用上次沟通的精确时间与事项；只摆事实不指责；CTA 必须带明确 deadline(具体日期)，不要"尽快"。`,
+    subjectHint: `事项 + 时间锚点`,
+    ctaHint: `请在 X 月 X 日前回复`
+  },
+  '求职': {
+    name: `求职 (Job Application)`,
+    guide: `钩子是与岗位或公司的具体连接(禁止"贵公司很伟大"类套话)；价值用可量化的过往成果(数字)证明；CTA 请求面试。`,
+    subjectHint: `岗位 + 姓名 + 核心标签`,
+    ctaHint: `请求面试 / 进一步沟通`
+  },
+  '婉拒': {
+    name: `婉拒 (Polite Decline)`,
+    guide: `先肯定对方邀请，再给简短理由(不堆借口、不过度致歉)，最后表达未来合作意愿；语气坚定但留余地。`,
+    subjectHint: `回复 + 主题`,
+    ctaHint: `保持联系 / 未来合作`
+  },
+  '感谢': {
+    name: `感谢 (Thank-you)`,
+    guide: `具体引用对方做了什么(不空泛"感谢帮助")，说明产生的实际影响或结果；结尾保持联系。`,
+    subjectHint: `感谢 + 具体事项`,
+    ctaHint: `后续行动 / 保持联系`
+  },
+  '请假': {
+    name: `请假 (Leave Request)`,
+    guide: `事由 + 起止时长 + 工作交接安排 + 紧急联系方式；提前告知；不冗余解释。`,
+    subjectHint: `请假类型 + 时段`,
+    ctaHint: `请批准 / 知会`
+  },
+  '投诉': {
+    name: `投诉 (Complaint)`,
+    guide: `事实陈述(订单号/时间/证据) → 对业务的影响 → 期望的具体解决方案 → 给出 deadline；全程不情绪化。`,
+    subjectHint: `订单/编号 + 问题 + 诉求`,
+    ctaHint: `限期解决 / 升级处理`
+  }
+};
+
+const RELATION = {
+  '平级': `协作直接、信息对等；可省略过度敬称，结论先行。`,
+  '上级': `结论先行、简洁尊重；避免冗长背景，提供 1-2 个选项供决策。`,
+  '客户': `服务意识优先、专业克制；中文用"您"，英文用 Hi [Name]；不卑不亢。`,
+  '陌生': `需 1 句自我介绍建立信任，解释"为什么找你"；避免唐突。`
+};
+
+const TONE = {
+  '正式严谨': `书面语、完整句式、避免口语缩略；中文用"敬请/烦请"，英文避免缩写(I am / do not)。`,
+  '友好亲切': `适度口语、有温度但不失分寸；中文可用"咱们"，英文允许缩写(I'm / let's)。`,
+  '强硬坚定': `结论先行、不留模糊；明确 deadline 与后果；减少缓冲词与客套。`,
+  '委婉': `用缓冲句("想请教/如有不便")；给对方台阶；CTA 软化为"是否方便..."。`
+};
+
+const LANG = {
+  '中文': { name: `中文`, wordLimit: `200–400 字`, subjectLang: `中文`, signoff: `此致 / 顺祝商祺 等` },
+  '英文': { name: `英文 (English)`, wordLimit: `120–250 words`, subjectLang: `English`, signoff: `Best regards / Sincerely 等` }
+};
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function build(){
+  const scene = document.getElementById('f-scene').value;
+  const pointsRaw = document.getElementById('f-points').value.trim();
+  const rel = document.getElementById('f-rel').value;
+  const tone = document.getElementById('f-tone').value;
+  const lang = document.getElementById('f-lang').value;
+  const sc = SCENE[scene];
+  const rl = RELATION[rel];
+  const tn = TONE[tone];
+  const lg = LANG[lang];
+  const points = pointsRaw ? pointsRaw : `（用户未填写——请先向用户确认：核心诉求、相关背景、关键时间/数据、期望结果，再动笔。）`;
+
+  let out = '';
+  out += `# 角色\n`;
+  out += `你是一位资深商务写作专家，拥有 15 年以上企业沟通与商务文案经验，擅长在结构化框架内输出高转化、零废话的商务邮件。\n\n`;
+
+  out += `# 任务\n`;
+  out += `撰写一封【${sc.name}】邮件。\n`;
+  out += `- 收件人关系：${rel}\n`;
+  out += `- 语气风格：${tone}\n`;
+  out += `- 邮件语言：${lg.name}（主题行、正文均用此语言）\n\n`;
+
+  out += `# 用户提供的核心要点\n${points}\n\n`;
+
+  out += `# 结构要求（严格遵循）\n`;
+  out += `1. 主题行：${lg.subjectLang}，简洁带钩子。方向提示 → ${sc.subjectHint}。**输出 3 个备选主题**。\n`;
+  out += `2. 称呼：${rel === '陌生' ? '需含一句自我介绍' : '根据收件人关系恰当称呼'}。\n`;
+  out += `3. 开场：3 句内直入正题，禁止空寒暄。\n`;
+  out += `4. 正文：背景 → 核心要点 → CTA，逻辑清晰；每段不超过 3 行。\n`;
+  out += `5. CTA：必须明确下一步动作 → ${sc.ctaHint}。\n`;
+  out += `6. 落款：${lg.signoff}。\n\n`;
+
+  out += `# 写作约束（防漂移）\n`;
+  out += `- 开头 3 句内进入正题，**禁止**"希望您一切都好/久仰大名"类空寒暄。\n`;
+  out += `- 每段不超过 3 行。\n`;
+  out += `- 总篇幅控制在 ${lg.wordLimit}。\n`;
+  out += `- 避免被动语态堆叠；${lang === '英文' ? '英文**必须**用主动语态 (Active Voice)' : '中文避免"被…/予以…"的官腔堆叠'}。\n`;
+  out += `- 不用"我希望/我想/我觉得"开头的弱主语句。\n`;
+  out += `- 数字、日期、人名、产品名必须具体；用户提供占位时按占位保留。\n\n`;
+
+  out += `# 场景专项指导\n${sc.guide}\n\n`;
+  out += `# 关系适配\n${rl}\n\n`;
+  out += `# 语气细则\n${tn}\n\n`;
+
+  out += `# 输出格式（按此结构输出，不要加多余说明）\n`;
+  out += `## 主题行（3 个备选）\n1. ...\n2. ...\n3. ...\n\n`;
+  out += `## 邮件正文\n[称呼]\n\n[开场——直入正题]\n\n[正文——背景/要点]\n\n[CTA——明确下一步]\n\n[落款]\n\n`;
+
+  out += `# 填空模板（用户可直接替换后使用）\n`;
+  out += `-------------------------------------------------\n`;
+  if(lang === '中文'){
+    out += `主题：${sc.subjectHint}\n\n`;
+    out += `${rel === '陌生' ? '【收件人称呼】，您好：\n\n【我是 XX，专注于 XX】——一句话自我介绍 + 为什么找您。\n\n' : '【收件人称呼】：\n\n'}`;
+    out += `【3 句内直入正题：诉求 + 背景】。\n\n`;
+    out += `【正文要点 1：具体事实/数据】\n`;
+    out += `【正文要点 2：影响或价值】\n\n`;
+    out += `【CTA：${sc.ctaHint}】\n\n`;
+    out += `此致\n【你的名字】\n`;
+  } else {
+    out += `Subject: ${sc.subjectHint}\n\n`;
+    out += `Hi [Name],\n\n`;
+    if(rel === '陌生'){
+      out += `[I am [Your Name], focused on [field].] One line on why I am reaching out to you specifically.\n\n`;
+    }
+    out += `[Get to the point in 3 sentences: the ask + the context.]\n\n`;
+    out += `[Point 1: specific fact or data.]\n`;
+    out += `[Point 2: impact or value.]\n\n`;
+    out += `[CTA: ${sc.ctaHint}.]\n\n`;
+    out += `Best regards,\n[Your Name]\n`;
+  }
+  out += `-------------------------------------------------\n`;
+
+  document.getElementById('out-prompt').textContent = out;
+}
+
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function generate(){build();}
+
+function init(){
+  const fields = ['f-scene','f-points','f-rel','f-tone','f-lang'];
+  fields.forEach(function(id){
+    const el = document.getElementById(id);
+    el.addEventListener('change', generate);
+    el.addEventListener('input', generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click', generate);
+  document.getElementById('btn-copy-all').addEventListener('click', function(){
+    const parts = [];
+    document.querySelectorAll('.card').forEach(function(card){
+      const tt = card.querySelector('.card-tt') ? card.querySelector('.card-tt').textContent : '';
+      const bd = card.querySelector('.card-bd') ? card.querySelector('.card-bd').textContent : '';
+      parts.push('【' + tt + '】\n' + bd);
+    });
+    copyText(parts.join('\n\n'), document.getElementById('btn-copy-all'));
+  });
+  document.querySelectorAll('.cbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const key = btn.getAttribute('data-copy');
+      const target = document.getElementById('out-' + key);
+      if(target){ copyText(target.textContent, btn); }
+    });
+  });
+  generate();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

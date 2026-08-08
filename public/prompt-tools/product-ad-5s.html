@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品广告 5s 短视频</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>产品广告 5s 短视频</h1><p class="sub">多镜头脚本 · 主特写/演示/收尾</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field"><label for="product">产品</label><textarea id="product" rows="2" placeholder="如:无线降噪耳机 / 保温杯 / 智能手表">无线降噪耳机</textarea></div>
+  <div class="field"><label for="selling">核心卖点</label><input id="selling" type="text" placeholder="一句话卖点，如:主动降噪、续航 40 小时" value="主动降噪"></div>
+  <div class="field"><label for="tone">风格调性</label><select id="tone"><option value="高端质感">高端质感</option><option value="活力年轻">活力年轻</option><option value="科技未来">科技未来</option><option value="温暖生活">温暖生活</option></select></div>
+  <div class="field"><label for="logo">品牌 logo 收尾（可选）</label><input id="logo" type="text" placeholder="如:SoundOne，留空则用品牌定格" value="SoundOne"></div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card"><div class="card-hd"><span class="card-tt">3 镜头脚本</span><button class="cbtn" data-copy="script">复制</button></div><div class="card-bd" id="out-script"></div></div>
+  <div class="card"><div class="card-hd"><span class="card-tt">通用规则</span><button class="cbtn" data-copy="rules">复制</button></div><div class="card-bd" id="out-rules"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>三镜只讲一个卖点，logo 留给后期合成，画面越干净越高级。</p></div></footer>
+<script>
+const STYLE={
+'高端质感':{en:'cinematic premium look, dark seamless background, soft rim lighting, shallow depth of field, macro detail, elegant luxury commercial aesthetic, 8k',cn:'电影级高端质感，深色无缝背景，柔和轮廓光，浅景深，微距细节，优雅奢华的广告感，8K超清'},
+'活力年轻':{en:'bright vibrant colors, dynamic energetic pacing, colorful gradient background, trendy youthful, fast fun motion',cn:'明亮鲜艳的色彩，动感活力的节奏，彩色渐变背景，潮流年轻，快速活泼的运动'},
+'科技未来':{en:'futuristic sci-fi aesthetic, holographic lighting, clean studio, metallic surfaces, neon accents, high-tech sleek',cn:'未来科技感，全息光效，干净摄影棚，金属质感表面，霓虹点缀，高科技流畅'},
+'温暖生活':{en:'warm natural light, cozy home setting, soft golden tones, inviting lifestyle, authentic, gentle',cn:'温暖自然光，温馨家居场景，柔和金色色调，亲切的生活方式，真实舒适'}
+};
+function val(id){const el=document.getElementById(id);return el?el.value:''}
+function build(){
+let product=(val('product')||'').trim();if(!product)product='产品';
+let selling=(val('selling')||'').trim();if(!selling)selling='核心卖点';
+const tone=val('tone')||'高端质感';
+let logo=(val('logo')||'').trim();
+const st=STYLE[tone]||STYLE['高端质感'];
+
+const s1en=`Close-up macro shot of ${product}, entering the frame on a clean surface, ${selling} prominently shown, camera slowly pushes in to reveal fine detail, ${st.en}.`;
+const s1cn=`${product}主特写微距镜头，在干净台面上入画，${selling}醒目呈现，镜头缓慢推进展现精致细节，${st.cn}。`;
+
+const s2en=`Product demonstration shot, ${product} rotating 360 degrees while ${selling} is showcased in action, camera orbits smoothly around the product, ${st.en}.`;
+const s2cn=`产品演示镜头，${product}360度旋转，${selling}在使用中展现，镜头平稳环绕产品，${st.cn}。`;
+
+let s3en,s3cn;
+if(logo){
+s3en=`Closing shot, camera slowly pulls back, ${product} settles into final position, "${logo}" logo fades in at center frame, freeze on hero pose, ${st.en}.`;
+s3cn=`收尾镜头，镜头缓慢拉出，${product}定格于最终位置，"${logo}"标识在画面中央淡入，定格于主视觉姿态，${st.cn}。`;
+}else{
+s3en=`Closing shot, camera slowly pulls back, ${product} settles into a clean hero composition, freeze frame, brand reveal, ${st.en}.`;
+s3cn=`收尾镜头，镜头缓慢拉出，${product}定格于干净的主视觉构图，定格，品牌揭晓，${st.cn}。`;
+}
+
+const script=`【镜头1 · 主特写 · 推进】约 1.5s\nEN (Sora/Runway): ${s1en}\n中文 (可灵): ${s1cn}\n\n【镜头2 · 演示 · 环绕】约 2s\nEN (Sora/Runway): ${s2en}\n中文 (可灵): ${s2cn}\n\n【镜头3 · 收尾 · 拉出】约 1.5s\nEN (Sora/Runway): ${s3en}\n中文 (可灵): ${s3cn}`;
+
+const logoDesc=logo?`"${logo}" logo`:'品牌标识';
+const rules=`· 整片总时长约 5 秒（1.5s + 2s + 1.5s），单镜不超过 5 秒，节奏紧凑。\n· 每镜只讲一个核心卖点——"${selling}"，避免信息过载。\n· 收尾镜头至少留 1 秒给${logoDesc}定格，方便观众记住品牌。\n· 不要在画面里堆文字特效或花字，所有字幕、logo、特效统一后期合成，保证画面干净。\n· 三镜色调与背景保持一致（${tone}），避免跳切感。\n· 优先用 ${product} 的真实材质、光泽、运动讲故事，少依赖特效。`;
+
+return{script,rules};
+}
+function generate(){
+const r=build();
+document.getElementById('out-script').textContent=r.script;
+document.getElementById('out-rules').textContent=r.rules;
+}
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor='';},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function copyAll(){copyText(['【3 镜头脚本】','',document.getElementById('out-script').textContent,'','【通用规则】','',document.getElementById('out-rules').textContent].join('\n'),document.getElementById('btn-copy-all'))}
+function init(){
+['product','selling','tone','logo'].forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener('input',generate);el.addEventListener('change',generate)}});
+document.getElementById('btn-gen').addEventListener('click',generate);
+document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+document.querySelectorAll('.cbtn').forEach(b=>{b.addEventListener('click',()=>{const k=b.getAttribute('data-copy');const el=document.getElementById('out-'+k);if(el)copyText(el.textContent,b)})});
+generate();
+}
+init();
+</script>
+</body>
+</html>

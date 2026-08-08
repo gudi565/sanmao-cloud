@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>即梦图像提示词生成器</title>
+<style>
+  :root{
+    --bg:#fbfbfd; --card:#ffffff; --border:#e0e0e6; --text:#1d1d1f; --secondary:#6e6e73;
+    --accent:#0071e3; --accent-hover:#0077ed; --radius:14px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:40px 24px 56px;}
+  header h1{font-size:30px; font-weight:600; letter-spacing:-.01em; margin:0;}
+  header .sub{color:var(--secondary); font-size:15px; margin-top:8px;}
+  .grid{display:grid; grid-template-columns:380px 1fr; gap:28px; align-items:start; margin-top:30px;}
+  .left{position:sticky; top:24px;}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow);}
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  label{display:block; font-size:13px; font-weight:600; margin-bottom:7px; color:var(--text);}
+  .hint{font-weight:400; color:var(--secondary); font-size:12px;}
+  input[type=text], select, textarea{
+    width:100%; padding:9px 11px; font-size:14px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:#fff; color:var(--text); font-family:inherit; transition:border-color .15s, box-shadow .15s;
+  }
+  textarea{resize:vertical; min-height:74px;}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,113,227,.15);}
+  .presets{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;}
+  .preset-btn{padding:6px 13px; font-size:13px; border:1px solid var(--border); border-radius:999px; background:#fff; cursor:pointer; color:var(--text); font-family:inherit; transition:all .15s;}
+  .preset-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .preset-btn.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .btn{background:var(--accent); color:#fff; border:none; padding:12px 18px; border-radius:var(--radius-sm); font-size:15px; font-weight:600; cursor:pointer; width:100%; font-family:inherit; transition:background .15s;}
+  .btn:hover{background:var(--accent-hover);}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;}
+  .topbar h2{font-size:18px; font-weight:600; margin:0;}
+  .copy-all{background:var(--text); color:#fff; border:none; padding:8px 16px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:opacity .15s;}
+  .copy-all:hover{opacity:.85;}
+  .out-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:16px; box-shadow:var(--shadow);}
+  .out-card h3{margin:0 0 10px; font-size:15px; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:12px;}
+  .copy-btn{background:#f2f2f5; border:1px solid var(--border); color:var(--text); padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .15s; flex-shrink:0;}
+  .copy-btn:hover{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .copy-btn.copied{background:#34c759; color:#fff; border-color:#34c759;}
+  .out-body{white-space:pre-wrap; word-break:break-word; font-size:14px; line-height:1.75; color:#3a3a3c;}
+  #out-en{font-family:var(--mono); font-size:13px;}
+  footer{text-align:center; color:var(--secondary); font-size:13px; margin-top:40px; padding-top:24px; border-top:1px solid var(--border);}
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr;}
+    .left{position:static;}
+    .wrap{padding:28px 16px 48px;}
+    header h1{font-size:25px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>即梦图像提示词生成器</h1>
+    <div class="sub">16 风格 · 中文自然语言 · 内置防漂移 · 离线即用</div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: INPUTS -->
+    <aside class="left">
+      <div class="card">
+        <div class="field">
+          <h3 style="font-size:13px;font-weight:600;margin:0 0 7px;">一键预设</h3>
+          <div class="presets" id="presets"></div>
+        </div>
+
+        <div class="field">
+          <label for="f-style">风格</label>
+          <select id="f-style"></select>
+        </div>
+
+        <div class="field">
+          <label for="f-subject">主体描述 <span class="hint">（留空则用当前风格的示例主体）</span></label>
+          <textarea id="f-subject" placeholder="例如：一位穿月白色汉服的少女站在樱花树下，微风轻拂发丝"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="f-comp">构图</label>
+          <select id="f-comp"></select>
+        </div>
+
+        <div class="field">
+          <label for="f-lens">镜头 / 焦段</label>
+          <select id="f-lens"></select>
+        </div>
+
+        <div class="field">
+          <label for="f-light">光影</label>
+          <select id="f-light"></select>
+        </div>
+
+        <div class="field">
+          <label for="f-color">色调</label>
+          <select id="f-color"></select>
+        </div>
+
+        <div class="field">
+          <label for="f-mood">氛围 <span class="hint">（可选，留空用风格默认）</span></label>
+          <input type="text" id="f-mood" placeholder="例如：温润清雅、静谧怀旧">
+        </div>
+
+        <div class="field">
+          <label for="f-aspect">比例</label>
+          <select id="f-aspect"></select>
+        </div>
+
+        <div class="field">
+          <label for="f-neg">负向提示词（排除词）</label>
+          <input type="text" id="f-neg">
+        </div>
+
+        <div class="field">
+          <button class="btn" id="genBtn">立即生成</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT: OUTPUTS -->
+    <section class="right">
+      <div class="topbar">
+        <h2>生成结果</h2>
+        <button class="copy-all" id="copyAll">全部复制</button>
+      </div>
+
+      <div class="out-card">
+        <h3>【中文提示词】 <button class="copy-btn" data-k="cn">复制</button></h3>
+        <div class="out-body" id="out-cn"></div>
+      </div>
+
+      <div class="out-card">
+        <h3>【负向提示词】 <button class="copy-btn" data-k="neg">复制</button></h3>
+        <div class="out-body" id="out-neg"></div>
+      </div>
+
+      <div class="out-card">
+        <h3>【英文关键词】 <button class="copy-btn" data-k="en">复制</button></h3>
+        <div class="out-body" id="out-en"></div>
+      </div>
+
+      <div class="out-card">
+        <h3>【参数建议】 <button class="copy-btn" data-k="param">复制</button></h3>
+        <div class="out-body" id="out-param"></div>
+      </div>
+
+      <div class="out-card">
+        <h3>【防漂移清单 + 即梦技巧】 <button class="copy-btn" data-k="drift">复制</button></h3>
+        <div class="out-body" id="out-drift"></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>一段流畅中文 + 一个主风格 + 负向词框排除手脚文字崩坏 — 即梦出好图的关键。</footer>
+</div>
+
+<script>
+const STYLES = [{"category":"摄影写实类","default_subject_example":"一位穿米白色亚麻衬衫的年轻女人，黑发松松挽在脑后，耳后垂下几缕碎发","donts":["不要堆叠冲突风格词(如\"水彩+写实+油画\"同框),画面会发糊","不要用强顶光或机顶直闪,会产生油光与生硬阴影","不要在背景塞太多抢眼元素,主体必须是最清晰的焦点","不要在人脸上要求长中文文字(刺青/标语),极易乱码"],"dos":["指定服装材质与颜色(亚麻、棉麻、丝绸、针织),显著提升真实感","优先自然光源:窗户漫射光、黄金时刻、阴天柔光","描述发丝状态(碎发、绒毛、逆光光晕)增加层次与立体感","明确人物视线方向与情绪(望向窗外、低头沉思、直视镜头)","在{subject}里给出人物姿态与手部位置,减少手指异常"],"drift_risks":[{"fix":"在{subject}里明确手部姿态(如\"双手自然插在口袋里\"\"单手托腮\"),并在negatives加\"六指、连指、多余手指、畸形手指\"","risk":"多出/合并的手指(六指、蹼状指、手指数量错乱),尤其是手出现在画面中时","severity":"HIGH"},{"fix":"强调\"真实皮肤质感,保留毛孔、细纹、微小雀斑,拒绝磨皮滤镜\",negatives加\"塑料感皮肤、过度磨皮、蜡像感\"","risk":"塑料感/蜡像感的过度磨皮皮肤,失去真实质感","severity":"HIGH"},{"fix":"显式写入\"五官对称、双眼清澈\",并指定\"眼眸带自然眼神光(catchlight)\"","risk":"五官不对称、眼睛浑浊无神或眼神光缺失","severity":"MEDIUM"},{"fix":"在{composition}指定主体在画面三分之一交点,背景元素简化,并用\"柔和散景\"虚化","risk":"发丝与背景融合粘连,主体边缘不分明","severity":"MEDIUM"},{"fix":"光源单一且柔和(窗光/柔光箱),避免多光源打架","risk":"多重眼神光或多重阴影,光线方向混乱","severity":"LOW"}],"id":"portrait-photo","keywords_cn":["真实皮肤质感","可见毛孔","微小雀斑","眼神光","浅景深","柔和散景","85mm人像镜头","自然肤色","发丝分明","高解析度写实"],"keywords_en":["realistic skin texture","visible pores","subtle freckles","catchlight","shallow depth of field","soft bokeh","85mm portrait lens","natural skin tone","hair strands in focus","high-resolution photorealism"],"name_cn":"人像写真","name_en":"Portrait Photography","negatives":["多余手指","六指","连指","残缺手指","塑料感皮肤","过度磨皮","蜡像感","不对称眼睛","眼神浑浊","面部不对称","双下巴","油光过重","水印","文字logo","模糊","过度锐化"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，真实皮肤纹理与可见毛孔、微小雀斑，眼眸清澈带眼神光，发丝分明，{color}，{mood}，高解析度写实摄影","recommended_aspect":"3:4"},{"category":"摄影写实类","default_subject_example":"一碟刚出锅的红油抄手，热气升腾，抄手表面泛着油亮光泽，撒上葱花与白芝麻","donts":["不要用闪光灯直打,油面会过曝惨白","不要在画面里堆满菜品,留白才有食欲","不要在盘面/包装上要求长中文文字,模型易出乱码","不要用RGB彩色氛围灯,食物颜色会失真"],"dos":["描述食物的烹调状态(刚出锅、滋滋冒油、表皮微焦、糖浆拉丝)","指明光源方向(侧逆光、窗光),侧逆光最能表现油润质感","用简单有质感的道具(木砧板、粗陶碗、亚麻餐巾)做背景","指定拍摄角度(俯拍、45度、平视),不同角度食欲感不同"],"drift_risks":[{"fix":"在{subject}明确\"自然烹调色泽,表皮微焦不均匀,油亮但不过曝\"","risk":"食物看起来假、塑料感,像道具模型而非真菜","severity":"HIGH"},{"fix":"不要要求盘面/包装上的文字;若必须,只用\"一两个字\"并指定\"端正字体\"","risk":"餐盘/包装上的中文文字乱码或变形","severity":"HIGH"},{"fix":"指定\"柔和侧逆光\"而非直闪,negatives加\"过曝高光、死白\"","risk":"油面/酱汁高光过曝成死白,丢失层次","severity":"MEDIUM"},{"fix":"构图精简,negatives加\"多余餐具、杂乱道具、异物\"","risk":"画面塞入不可食或突兀的杂物,破坏食欲","severity":"MEDIUM"},{"fix":"指定真实克制的色调(如\"暖黄、酱红、橄榄绿\"),避免\"荧光、霓虹\"","risk":"颜色失真,出现荧光/霓虹般的非食物色调","severity":"LOW"}],"id":"food-closeup","keywords_cn":["美食微距摄影","油润光泽","热气氤氲","食材纹理","酱汁颗粒","浅景深","俯拍","45度角","食欲感","侧逆光"],"keywords_en":["food macro photography","glistening oil sheen","rising steam","ingredient texture","sauce granules","shallow depth of field","overhead shot","45-degree angle","appetizing","side backlight"],"name_cn":"美食特写","name_en":"Food Close-up","negatives":["塑料质感食物","伪造食物","过曝高光","死白油光","颜色失真","荧光色","焦点模糊","多余餐具抢镜","异物","蟑螂","污渍","水印","多余手指","长文字乱码"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，食物表面油润光泽、热气氤氲升腾，酱汁颗粒分明，以四十五度斜俯拍视角呈现，{color}，{mood}","recommended_aspect":"4:5"},{"category":"摄影写实类","default_subject_example":"一只磨砂玻璃香水瓶，瓶身微微透出淡琥珀色液体，瓶盖为拉丝金属，置于纯灰亚麻布上","donts":["不要在产品上要求复杂长文字或精确logo,极易乱码","不要同框堆多个产品,单主体更稳更清晰","不要用RGB彩色氛围灯,颜色会失真偏离真实产品色","不要用复杂花纹背景,会与产品争夺视觉"],"dos":["指定材质(磨砂玻璃、抛光金属、拉丝铝、磨砂塑料),模型会忠实还原反射特性","明确背景(纯白、纯灰、渐变、亚麻布),让产品跳出来","描述布光方案(柔光箱主光+反光板补光+轮廓光),影棚感更专业","限定单主体,避免多产品干扰材质表现"],"drift_risks":[{"fix":"logo描述保持抽象(\"简洁字母标识\"),或指定字体\"无衬线、端正\"并只给2-4个字符;negatives加\"乱码、变形文字\"","risk":"品牌logo、瓶身文字乱码或扭曲变形","severity":"HIGH"},{"fix":"指定\"干净柔光环境,单一柔和主光\",negatives加\"杂乱反光、多重倒影、指纹\"","risk":"玻璃/金属表面出现杂乱反光、环境倒影、指纹","severity":"HIGH"},{"fix":"negatives加\"灰尘、划痕、指纹、污点\",并写\"产品洁净如新\"","risk":"产品表面出现灰尘颗粒、划痕、瑕疵伪影","severity":"MEDIUM"},{"fix":"对瓶身/盒装产品指定\"轮廓笔直、几何对称、无透视畸变\"","risk":"产品几何扭曲(瓶身歪斜、圆形变椭圆)","severity":"MEDIUM"},{"fix":"强调\"色彩还原准确、中性白平衡\",避免\"高饱和、滤镜\"","risk":"色彩偏色过饱和,产品色失真","severity":"LOW"}],"id":"product-stilllife","keywords_cn":["商业产品摄影","静物","材质表现","玻璃通透","金属拉丝","影棚级布光","柔光箱","干净背景","高解析度","焦点锐利"],"keywords_en":["commercial product photography","still life","material rendering","translucent glass","brushed metal","studio lighting","softbox","clean background","high resolution","sharp focus"],"name_cn":"产品静物","name_en":"Product Still Life","negatives":["划痕","灰尘颗粒","指纹","杂乱反光","多重倒影","背景污渍","模糊","logo乱码","变形文字","颜色失真","过曝","塑料感","水印","透视畸变"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，产品表面材质细腻，玻璃反射与金属拉丝纹理清晰，无指纹无划痕，f/8大景深确保全身合焦，焦点锁定品牌标识，衬以纯色背景，{color}，{mood}","recommended_aspect":"1:1"},{"category":"摄影写实类","default_subject_example":"一位穿卡其色风衣的女人站在雨夜街头，霓虹倒映在湿漉漉的柏油路面上，侧脸望向画面之外","donts":["不要混搭风格(如\"胶片+3D+水彩+油画\"同框),画面会发糊发乱","不要堆砌过多叙事元素,主体必须明确单一","不要要求远处招牌清晰文字,招牌应随浅景深虚化","不要把人物手部暴露在画面边缘,易出现多余手指"],"dos":["用环境光(霓虹、雨夜、黄金时刻、烛光)营造电影氛围","描述人物姿态、视线方向与动作,增强叙事张力","指定胶片型号色调(Porta 400暖肤色、CineStill 800T夜霓虹、富士Velvia高饱和)更精准","用宽银幕比例(16:9、21:9)增强电影叙事感"],"drift_risks":[{"fix":"film-still绝不能与\"3D渲染/水彩/卡通/油画/赛博朋克霓虹堆叠\"同框;保持\"35mm胶片纪实\"为唯一主风格","risk":"风格词冲突导致画面发糊、混乱(如误叠\"3D渲染\"\"水彩\"\"赛博朋克\")","severity":"HIGH"},{"fix":"人物手部藏入口袋/背后或移出画框,negatives加\"多余手指、六指、多余肢体\"","risk":"环境场景中人物多出肢体/手指(尤其半身、街头群像)","severity":"HIGH"},{"fix":"远处招牌用\"浅景深\"虚化掉,不指定招牌的具体文字内容","risk":"远处霓虹招牌/路牌中文乱码或扭曲","severity":"MEDIUM"},{"fix":"主体只留一个人物或一组关系,背景元素 atmospherically 虚化","risk":"叙事元素堆砌过多,主体不明确,画面杂乱","severity":"MEDIUM"},{"fix":"用\"细腻胶片颗粒\"而非\"粗颗粒、重度噪点\"","risk":"颗粒过重导致画面脏污、细节丢失","severity":"LOW"}],"id":"film-still","keywords_cn":["电影胶片质感","35mm纪实摄影","细腻颗粒","光晕","暗角","宽银幕","叙事感","浅景深","柯达Portra","CineStill","环境光氛围"],"keywords_en":["cinematic film aesthetic","35mm documentary photography","fine grain","halation","vignette","widescreen","narrative mood","shallow depth of field","Kodak Portra","CineStill","ambient atmosphere"],"name_cn":"电影剧照/胶片感","name_en":"Film Still / Cinematic","negatives":["数码塑料感","过度锐利","高饱和数码感","时尚大片棚拍感","廉价滤镜","多余手指","六指","多余肢体","剧烈形变","霓虹招牌乱码","水印","logo"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，宽银幕画幅，自然光晕与轻微暗角，柯达Portra 400，{color}，{mood}","recommended_aspect":"16:9"},{"category":"艺术插画类","default_subject_example":"一位青衣文士立于古松下抚琴，山雾缭绕，一只孤鹤盘旋远去","donts":["不要混入\"摄影/电影/35mm/写实/3D渲染/景深虚化\"——这是水墨纯粹性的头号死敌","不要要求\"超高清/平滑细腻/磨皮\",会抹掉纸纹与飞白","不要堆砌高饱和现代色或霓虹光效,水墨以墨为主","不要把画面填满——留白即构图,计白当黑","不要同时要\"工笔精微\"又\"写意洒脱\"两种相反笔法,风格会混乱","不要指定印章上具体的汉字内容,极易生成乱码符号"],"dos":["强调\"墨分五色(焦浓重淡清)\"的层次而非死黑,留出飞白的呼吸感","大面积留白(计白当黑),主体只占画面三分之一到一半,营造空灵意境","明确载体材质:\"生宣/熟宣/绢本\"及对应的纤维渗化特性","色彩以墨为主、淡彩(花青赭石朱砂)为辅,克制点缀","先定一种笔法倾向:写意洒脱 或 工笔精微,全图统一,不要混说","要印章题款时只说\"朱砂印章题款点缀\",不指定具体文字"],"drift_risks":[{"fix":"提示词明确\"传统中国画,非摄影非3D非渲染\",排除词加\"摄影 电影 3D 写实 景深 胶片\";不要混入任何镜头/胶片词到{lens}占位符","risk":"Seedream 偏向摄影写实,生成的水墨易混入真实皮肤质感、景深虚化、电影颗粒、3D光影,彻底破坏水墨纯粹性","severity":"HIGH"},{"fix":"强调\"墨色层次分明,主体轮廓清晰\";提示词避免同时要求大面积湿画法扩散;以\"写意\"控制水分,工笔部分用干笔勾勒","risk":"水墨遇水过度扩散晕染,糊成一团丢失形体,边缘失控渗化","severity":"HIGH"},{"fix":"明确\"宣纸/绢本纤维质感清晰可见,纸质纹理\";避免\"高清/平滑/细腻/磨皮\"等词;排除词加\"平滑背景\"","risk":"宣纸/绢本的纤维纹理被抹平成数字纯白底,丢失载体质感","severity":"MEDIUM"},{"fix":"只笼统说\"朱砂印章与题款点缀\"营造氛围,绝不指定印章上的具体文字;或干脆省略文字元素","risk":"印章与题款文字生成乱码,变成无意义符号笔画","severity":"MEDIUM"},{"fix":"用\"焦浓重淡清五色层次\"替代单纯的\"黑色\";提示词加\"墨色富有浓淡变化\"","risk":"纯黑死板色块堆砌,缺乏焦浓重淡清的墨色过渡","severity":"LOW"}],"id":"ink-chinese","keywords_cn":["传统水墨画","墨分五色焦浓重淡清","留白计白当黑","宣纸绢本纤维质感","皴擦点染","飞白干笔","淡彩点缀","散点透视三远法","写意笔法","题款朱砂印章"],"keywords_en":["Chinese ink wash painting","xuan rice paper","negative space","freehand brushwork","flying white dry brush","ink five tones","scattered perspective","monochrome with light color","seal and inscription","traditional Chinese painting"],"name_cn":"国风水墨","name_en":"Chinese Ink Wash Painting","negatives":["油画厚涂质感","3D渲染","摄影写实","电影胶片质感","浅景深虚化","高饱和霓虹色","金属光泽","塑料肤质","数字平滑磨皮","矢量卡通","印章乱码","题款乱码","无意义符号笔画","多余手指","手指粘连"],"prompt_template_cn":"{subject}，{composition}，以传统写意水墨画呈现，{lens}，{lighting}，墨色焦浓重淡清五色层次分明，皴擦点染间留有飞白，宣纸纤维质感细腻可见，{color}，{mood}，计白当黑，辅以朱砂印章题款","recommended_aspect":"3:4"},{"category":"艺术插画类","default_subject_example":"一只系着红围巾的小狐狸抱着气球,穿过金黄落叶铺地的秋日森林","donts":["不要用\"写实/照片级/真实皮肤质感\"——会丢掉绘本的童趣插画感","不要全图强烈湿画晕染,否则颜色浑浊(muddy)、形体走失","不要\"超高饱和/刺眼鲜艳\",要柔和明度与粉嫩调","不要\"数字绘画/平滑高清/矢量\",会丢失水彩纸纹理","不要堆叠过多角色与复杂精密细节,绘本贵在简洁"],"dos":["主体轮廓相对清晰,仅背景做柔和湿画晕染,避免全图模糊","点明\"冷压/中压水彩纸\"的颗粒纹理与\"温柔水渍边缘\"","角色用圆润可爱的比例(略大头),色彩明亮中带粉嫩","保留纸张本身的留白作为高光,体现透明水彩的通透轻盈","可加淡铅笔手稿轮廓线增加手作温度"],"drift_risks":[{"fix":"明确\"插画风格,非写实非照片\";角色用\"可爱圆润比例\";避免\"真实/写实/照片级/细腻皮肤\"","risk":"过度写实倾向,人物长出真实皮肤质感、真实毛发,彻底丢失绘本童趣与插画感","severity":"HIGH"},{"fix":"平衡湿画与干画;提示词加\"主体轮廓清晰,仅背景柔和晕染\";避免全图要求\"强烈水渍扩散\"","risk":"湿画法过度晕染导致颜色相互渗透变浑浊(muddy),主体形体模糊走失","severity":"HIGH"},{"fix":"明确\"冷压水彩纸纹理可见\";避免\"高清平滑/数字绘画/矢量\";排除词加\"平滑背景\"","risk":"水彩纸的颗粒纹理缺失,画面变平滑数字插画感","severity":"MEDIUM"},{"fix":"用\"柔和粉嫩/中等明度/通透轻盈\"替代\"超高饱和/鲜艳刺眼\"","risk":"颜色过曝过亮刺眼,失去水彩特有的柔和通透","severity":"MEDIUM"},{"fix":"提示词用\"淡铅笔稿轮廓\"或干脆省略手绘线稿元素","risk":"多余铅笔草稿线杂乱干扰,显得脏","severity":"LOW"}],"id":"watercolor-childrenbook","keywords_cn":["儿童绘本插画","透明水彩","湿画法晕染","冷压水彩纸纹理","水渍边缘","淡铅笔手稿","柔和粉嫩明亮","童趣治愈","圆润可爱比例","通透轻盈"],"keywords_en":["children's book illustration","transparent watercolor","wet-on-wet wash","cold-pressed paper texture","soft water bloom edge","pencil sketch","pastel bright","childlike healing","cute proportions","luminous transparent"],"name_cn":"水彩绘本","name_en":"Watercolor Children's Book Illustration","negatives":["写实摄影","3D塑料渲染","油画厚涂质感","锐利硬边","暗黑压抑","赛博朋克霓虹","金属质感","高对比度阴影","复杂精密机械细节","矢量扁平"],"prompt_template_cn":"{subject}，{composition}，{lens}，以儿童绘本插画风格呈现，透明水彩笔触通透，{lighting}，{color}，冷压水彩纸的细腻颗粒纹理与水渍边缘清晰可见，{mood}，湿画法晕染配以手绘铅笔淡稿","recommended_aspect":"4:3"},{"category":"艺术插画类","default_subject_example":"身着暗红丝绒长裙的少女侧坐于窗边,膝上摊开一本书,手中握一束白玫瑰","donts":["不要混入\"水彩/扁平插画/矢量卡通\"等相反质感词","不要\"平滑/磨皮/柔焦/塑料肤质\"——会丢掉油画肌理变成数码蜡笔感","不要同时堆叠\"古典写实+印象派+表现主义\"等子风格,画面会糊掉","不要过度暗色叠加导致画面发黑发闷失去层次","不要要求超广角畸变镜头,肖像会面部变形"],"dos":["明确\"厚涂笔触/调色刀肌理/可见笔触\"与\"亚麻画布粗粝纹理\"","画人物时强调\"五官端正、手指完整、肤质油润\"控制崩坏","一次只选一个子风格:古典写实(明暗对照) 或 印象派(点彩笔触),全图统一","用\"罩染层次/油彩光泽/调和的丰富色彩\"对抗发灰发闷","明确时代背景与服饰道具细节,防止现代元素穿帮"],"drift_risks":[{"fix":"肖像提示词加\"面部五官端正对称,手指完整无多余\";避免复杂群像与超广角畸变;{lens}用\"正面胸像视角\"而非广角","risk":"人物面部五官与手指崩坏变形(尤其肖像与群像),多余手指、不对称眼睛","severity":"HIGH"},{"fix":"明确\"厚涂笔触清晰可见/调色刀质感/亚麻画布纹理\";避免\"平滑/柔焦/磨皮/高清细腻\";排除词加\"平滑 平面\"","risk":"笔触被过度平滑,丢失油画肌理,变成数字蜡笔或磨皮照片感","severity":"HIGH"},{"fix":"一次只定一个子风格;要么\"古典写实明暗对照\"要么\"印象派点彩笔触\",不混用","risk":"印象派点彩与古典写实明暗对照混用,导致风格混乱、画面不协调","severity":"MEDIUM"},{"fix":"提示词加\"油彩光泽/丰富调和色彩/透明罩染层次\";避免过多暗色叠加;{color}指定明确主色调","risk":"颜色发灰发闷(muddy),失去油彩的透明光泽与饱和度","severity":"MEDIUM"},{"fix":"明确时代背景与服饰道具(如\"19世纪欧式长裙、烛台、古典室内\")","risk":"现代元素(拉链、手表、塑料器物)穿帮,破坏古典氛围","severity":"LOW"}],"id":"oil-painting","keywords_cn":["古典油画质感","厚涂笔触","调色刀肌理","亚麻画布纹理","透明罩染层次","明暗对照戏剧光影","油彩光泽","丰富调和色彩","写实细腻","画面厚重饱满"],"keywords_en":["oil painting texture","impasto brushwork","palette knife","linen canvas texture","glazing layers","chiaroscuro","dramatic lighting","rich harmonious color","classical realism","painterly"],"name_cn":"油画质感","name_en":"Oil Painting Texture","negatives":["平面数字插画","水彩淡彩","3D塑料渲染","锐利矢量线条","霓虹赛博朋克","过曝刺眼高光","平面卡通","磨皮塑料肤质","颗粒噪点","水彩晕染"],"prompt_template_cn":"{subject}，{composition}，{lens}，以油画质感呈现，颜料厚涂的笔触与调色刀肌理清晰可辨，{lighting}，{color}，亚麻画布的粗粝纹理透出油彩光泽与透明罩染层次，{mood}","recommended_aspect":"4:5"},{"category":"艺术插画类","default_subject_example":"一个戴圆框眼镜的人在暖黄台灯下读书,桌上放着一杯冒着热气的咖啡","donts":["不要\"渐变/阴影/光影/高光/立体感\"——扁平的头号敌人","不要\"纹理/噪点/颗粒/做旧\"——会漂移成复古风","不要堆叠太多元素和写实细节,极简贵在克制","不要\"3D/等距/isometric/2.5D\"除非你明确就要这个变体","不要色板过多花哨,失去协调统一","不要长段文字标签,极易乱码"],"dos":["明确\"纯平面色块,无渐变无阴影无高光\"","主体单一突出,大量留白,几何元素克制(3-5个形)","指定有限协调色板(3-5色),给出主色方向","用\"干净矢量线条\"\"几何化抽象造型\"","{lighting}填\"均匀散射光/无方向平面光\",{lens}填\"正面平视构图\""],"drift_risks":[{"fix":"明确\"无渐变无阴影,纯平面色块\";排除词加\"渐变 阴影 立体 高光 球体光泽\";{lighting}只填\"均匀平面光\"","risk":"模型不自觉添加渐变、立体阴影、球体高光,破坏扁平纯粹性","severity":"HIGH"},{"fix":"提示词强调\"主体单一,大面积留白,元素不超过3-4个\";避免罗列过多道具与背景细节","risk":"元素堆叠过多过密,破坏极简留白与设计感","severity":"HIGH"},{"fix":"明确\"正面平面构图,非等距非立体\";避免\"3D/俯视45度/isometric\"","risk":"漂移成3D等距视角(isometric)或2.5D立体插画风","severity":"MEDIUM"},{"fix":"指定\"有限色板3-5色\";{color}给出明确主色调如\"低饱和米色+赭石+墨绿\"","risk":"色板过多过杂,失去协调统一变花哨","severity":"MEDIUM"},{"fix":"需要文字时只写简短中文短语(如\"读书\")且说明\"文字清晰端正\";或直接不要文字","risk":"文字标签乱码,生成无意义符号笔画","severity":"LOW"}],"id":"flat-minimal-illustration","keywords_cn":["极简扁平插画","纯平面色块","几何抽象造型","干净矢量线条","有限协调色板","无渐变无阴影","大面积留白","现代设计感","风格化简化","正面平面构图"],"keywords_en":["flat illustration","minimalist","vector geometric","solid color blocks","clean lines","limited palette","no gradient no shadow","negative space","modern design","stylized abstract"],"name_cn":"极简扁平插画","name_en":"Minimalist Flat Illustration","negatives":["3D渲染","写实摄影","渐变与阴影","纹理噪点颗粒","复古做旧","油画厚涂","水彩晕染","复杂写实细节","立体光影球体高光","等距2.5D视角"],"prompt_template_cn":"{subject}，{composition}，{lens}，以极简扁平插画呈现，几何色块与干净的矢量线条构成画面，{lighting}，{color}，无渐变的纯色填充，{mood}","recommended_aspect":"4:3"},{"category":"氛围风格类","default_subject_example":"一位身穿黑色皮质长风衣、颈部嵌有金属接口的女义体骇客，站在雨夜的香港式窄巷中央","donts":["不要把所有赛博朋克元素一股脑堆进画面(霓虹+全息+雨+雾+人+车+广告同时出现会糊)","不要同时用 3 种以上冲突色系","不要要求长段可读中文(超 4 字必乱码)","不要用平淡均匀的环境光,赛博朋克靠极端反差"],"dos":["锁定单一主导色系(经典青蓝-品红 或 青-橙)","中文招牌字符控制在 1-2 个常用字,并显式写'清晰可读'","用湿滑反光表面放大色彩丰富度","画面只保留 1 个清晰主体 + 1-2 个主光源"],"drift_risks":[{"fix":"招牌文字控制在 1-2 个常用汉字,显式写'清晰可读的汉字招牌',避免要求长句;用方块字视觉而非具体段落","risk":"霓虹中文招牌字符乱码、缺笔画、变形成无意义符号——Seedream 中文渲染虽强,但密集小字招牌极易糊","severity":"HIGH"},{"fix":"每张图限制 2-3 个主光源,锁定 1 个绝对主体,其余元素虚化到背景,用景深把杂乱压下去","risk":"元素过载导致画面混乱——霓虹+全息+雨+雾+人+飞行器同时出现,模型注意力分散,整体糊成一团","severity":"HIGH"},{"fix":"在人物主体上加'细腻皮肤纹理,可见毛孔,真实肤质',并锁定光线方向避免多向打光","risk":"义体/机械人物皮肤塑料化、过度磨皮,失去湿润真实的雨夜质感","severity":"MEDIUM"},{"fix":"明确指定'青蓝与品红冷暖对比'或'青橙电影色调'其一,排除其余强调色","risk":"色彩失控——青蓝+品红+绿+橙黄同时出现,饱和度爆炸,失去电影感","severity":"MEDIUM"},{"fix":"negatives 中加'水印, logo, 签名, UI元素'","risk":"全息广告区误生成水印/logo 样的方块伪影","severity":"LOW"}],"id":"cyberpunk","keywords_cn":["霓虹灯光","全息投影","湿滑反光街道","未来摩天楼","中文招牌","体积光雾霾","义体改造","飞行器","赛博朋克美学","雨夜"],"keywords_en":["neon lights","holographic projection","wet reflective streets","futuristic skyscrapers","Chinese signage","volumetric fog","cybernetic implants","flying vehicles","cyberpunk aesthetic","rainy night"],"name_cn":"赛博朋克","name_en":"Cyberpunk","negatives":["多余手指","肢体融合","变形手部","模糊","低质量","水印","logo","过曝","平淡光线","卡通","阳光明媚","文字乱码","杂乱细节"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，赛博朋克风格的未来都市，湿滑的雨夜街道倒映着漂浮的中文招牌与高密度摩天楼，{color}，{mood}，锐利的镜头眩光与色差","recommended_aspect":"16:9"},{"category":"氛围风格类","default_subject_example":"一座漂浮在粉紫渐变天空中的白色大理石半身雕像，背景是无限延伸的霓虹网格地平线","donts":["不要把蒸汽波梦幻粉彩和合成波暗黑霓虹混用","不要要求可读的具体文字(会乱码破坏氛围)","不要加真实人类皮肤质感,这会杀死超现实的迷幻感","不要用高对比锐利边缘,蒸汽波靠柔和朦胧"],"dos":["锁定柔和马卡龙粉紫青渐变为主色","渐变要平滑过渡,拒绝硬边色块","每张图只用 1-2 个标志性母题(网格+日落 或 雕像+棕榈)","拥抱柔和与朦胧,允许轻度模糊"],"drift_risks":[{"fix":"强调'平滑渐变,主色调统一为粉紫色',其余色彩降低饱和;渐变方向单一","risk":"粉、紫、青三色同时高饱和互相抢夺,渐变变脏、画面发灰发浑","severity":"HIGH"},{"fix":"用'抽象装饰性字符'替代具体句子,不要求可读;或用纯几何符号","risk":"装饰性日文/罗马字符乱码,破坏蒸汽波的核心氛围","severity":"HIGH"},{"fix":"强调'明亮柔和马卡龙色调,低对比,柔和光线',negatives 加'高对比,暗调'","risk":"画面偏向暗黑合成波(outrun)而非梦幻蒸汽波,变成深紫黑夜空","severity":"MEDIUM"},{"fix":"主体描述锁定复古物件,negatives 加'现代科技,智能手机'","risk":"现代元素泄漏(智能手机、现代服饰)打破复古氛围","severity":"MEDIUM"},{"fix":"指定'大理石雕塑哑光质感,细微颗粒'","risk":"大理石雕像面部塑料反光、过度光滑","severity":"LOW"}],"id":"retro-vaporwave","keywords_cn":["粉紫青渐变","霓虹网格地平线","复古日落","大理石雕像","棕榈树","VHS录像带质感","扫描线","镭射光泽","80年代怀旧","迷幻氛围"],"keywords_en":["pastel pink-purple-cyan gradient","synthwave grid horizon","retro sunset","marble bust statue","palm trees","VHS aesthetic","scanlines","chrome shine","80s nostalgia","dreamy vibe"],"name_cn":"蒸汽波/复古","name_en":"Retro Vaporwave","negatives":["现代元素","写实皮肤","杂乱细节","暗黑色调","阴沉","高对比锐利","文字乱码","3D渲染","塑料质感","鲜血","恐怖"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，蒸汽波风格的复古画面，粉紫青渐变天空下无限延伸的网格地平线铺向远方，{color}，{mood}，VHS录像带质感与扫描线颗粒","recommended_aspect":"16:9"},{"category":"氛围风格类","default_subject_example":"一位身披残破斗篷、手持幽绿符文长剑的苍白骑士，伫立在荆棘缠绕的哥特式废墟门前","donts":["不要压成纯黑一片,暗黑奇幻靠的是层次而非黑","不要用鲜艳欢快的色彩","不要堆叠过多生物/角色导致肢体融合","不要让现代物品(拉链、现代武器)泄漏进来"],"dos":["锁定去饱和基底 + 单一高饱和强调色","用明暗交错(体积光、烛光、缝隙光)而非平面暗","保留并强调暗部细节层次","拥抱衰败、繁复装饰、古老质感"],"drift_risks":[{"fix":"显式写'暗部保留细节,层次丰富,明暗对比而非纯黑',用体积光/缝隙光勾出轮廓","risk":"暗部压成死黑丢失所有细节,人物与背景糊成一团黑影","severity":"HIGH"},{"fix":"简化姿势,显式写'完整的手部结构,自然姿态',减少同时出现的角色数量","risk":"盔甲角色与黑暗生物多肢体/多手指, anatomy 在暗处更易崩坏","severity":"HIGH"},{"fix":"锁定单一强调色(血红烛光 或 幽绿符文光),其余统一去饱和","risk":"去饱和过度,整画面变成灰蒙蒙的泥色,失去戏剧性","severity":"MEDIUM"},{"fix":"加'细腻的皮肤纹理,毛孔,真实肤质'","risk":"苍白人物皮肤塑料化、过度平滑","severity":"MEDIUM"},{"fix":"negatives 加'现代物品,拉链,现代武器,塑料制品'","risk":"现代物品(金属拉链、现代枪械、塑料件)混入破坏古典感","severity":"LOW"}],"id":"dark-fantasy","keywords_cn":["哥特式废墟","浓雾","缠绕荆棘","乌鸦","古老符文","暗黑魔法","枯树衰败","烛火","苍白肤色","深沉阴影","史诗诡谲"],"keywords_en":["gothic ruins","thick fog","twisted thorns","ravens","ancient runes","dark magic","dead trees decay","candlelight","pale skin","deep shadow","eerie epic"],"name_cn":"暗黑奇幻","name_en":"Dark Fantasy","negatives":["明亮阳光","鲜艳色彩","欢快","卡通","可爱","笑容","过曝","现代物品","拉链","塑料制品","纯黑死黑","塑料皮肤"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，暗黑奇幻风格，哥特式废墟、缠绕的荆棘与翻涌的浓雾笼罩画面，精细的古老材质纹理，{color}，{mood}，暗部层次丰富","recommended_aspect":"3:4"},{"category":"氛围风格类","default_subject_example":"一个扎双马尾的少女站在开满雏菊的绿色山丘上,白裙被微风轻轻吹起,远处的白云蓬松如棉花糖","donts":["不要要求照片级写实细节(这是此风格最大的敌人)","不要用暗黑、恐怖、血腥元素","不要过度堆叠细节,留白是吉卜力的灵魂","不要用 3D 渲染的塑料体积感"],"dos":["反复强调'手绘水彩背景 + 赛璐璐平面涂色'(这是与 Seedream 的核心博弈点)","保持色彩明亮、自然、柔和","构图留白,给天空和云朵呼吸空间","用平面色块 + 细线轮廓,拒绝体积渲染"],"drift_risks":[{"fix":"反复强调'水彩手绘背景,赛璐璐动画,平面涂色,非写实,非3D',negatives 强加'写实,3D渲染,照片质感'","risk":"过度写实渲染——Seedream 擅长照片质感,会本能地把吉卜力画成写实风光片,彻底失去手绘灵魂(此风格头号风险)","severity":"HIGH"},{"fix":"强调'平面手绘涂色,色块清晰,无体积感渲染,柔和赛璐璐'","risk":"角色呈现 3D 渲染的塑料质感,失去 2D 动画的平面魅力","severity":"HIGH"},{"fix":"简化构图,大量天空/草地留白,主体居中且单一","risk":"细节过载、画面拥挤,失去吉卜力特有的留白与透气感","severity":"MEDIUM"},{"fix":"描述'清澈的大眼睛,柔和温柔的五官,圆润脸庞'","risk":"角色面部走形,眼睛不再是吉卜力标志性的清澈大眼风格","severity":"MEDIUM"},{"fix":"negatives 加'现代都市,电子产品,机械设备'","risk":"现代都市/机械元素泄漏,破坏田园怀旧氛围","severity":"LOW"}],"id":"ghibli-healing","keywords_cn":["手绘动画","赛璐璐质感","水彩手绘背景","蓬松白云","绿色原野","温暖阳光","治愈清新","柔和马卡龙色","细腻笔触","微风轻拂","田园风光"],"keywords_en":["hand-painted animation","cel shading","watercolor background","fluffy white clouds","green meadow","warm sunlight","healing fresh","soft pastel colors","delicate brushwork","gentle breeze","pastoral scenery"],"name_cn":"吉卜力治愈系","name_en":"Ghibli Healing","negatives":["3D渲染","写实照片质感","塑料质感","锐利硬边缘","暗黑恐怖","血腥","复杂机械","现代都市","高对比","体积光影","赛博朋克"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，吉卜力手绘动画风格，水彩手绘背景与赛璐璐动画质感，郁郁葱葱的自然间柔软蓬松的云朵悠然舒展，{color}，{mood}，笔触细腻","recommended_aspect":"16:9"},{"category":"设计/3D类","default_subject_example":"一只穿着宇航服、头盔面罩半开的柴犬潮玩公仔","donts":["不要混入写实毛发或皮肤纹理,会破坏搪胶质感","背景不要放复杂场景或杂物,破坏棚拍纯净度","不要让角色摆复杂扭转动势,极易崩肢体","不要一次塞多个人物,单主体最稳","不要叠加塑料光泽与真实金属锈蚀两种材质指令,会互相打架"],"dos":["明确写出比例,如'二头身''三头身大头小身',锁定Q版体型","把材质说成'搪胶/乙烯基/树脂',并强调'光滑反光涂装面'","用纯色或柔和渐变棚拍背景,突出主体","保持站姿对称、动作简单,手贴身体两侧降低肢体崩坏","可点名泡泡玛特/寻找独角兽等国产潮玩品牌气质作参照"],"drift_risks":[{"fix":"模板里钉死'二头身大头小身比例',并在主体描述里再点一次Q版,排除词加'写实人体比例'","risk":"比例漂移成写实人体——大眼圆脸塌成普通九头身,失去潮玩Q感","severity":"HIGH"},{"fix":"保持站姿简单对称,手贴身侧;排除词写'多指、融手、多余手臂、扭曲关节',主体描述避免'伸手/握物'等动作","risk":"手指与肢体崩坏——多余手指、融手、断臂,潮玩人物是肢体崩坏重灾区","severity":"HIGH"},{"fix":"强调'光滑搪胶、乙烯基、高光涂装、轻微反光',并在{color}里点出光泽感","risk":"表面质感变哑光写实——搪胶光泽丢失,变成普通塑料甚至真实皮肤","severity":"MEDIUM"},{"fix":"脸部只用一句简单描述,指定'一张嘴、两只对称大眼',排除'重嘴、多眼'","risk":"面部五官重复错位——重嘴、双鼻、眼睛大小不对称","severity":"MEDIUM"},{"fix":"指定'纯色或柔和渐变棚拍背景',排除'杂物、场景、环境'","risk":"背景杂物堆叠——纯色棚拍被填进复杂环境,喧宾夺主","severity":"LOW"}],"id":"3d-blindbox-toy","keywords_cn":["盲盒","潮玩","Q版","大头小身","二头身","搪胶","乙烯基玩具","泡泡玛特","收藏级","圆润","光泽涂装","呆萌"],"keywords_en":["blind box toy","designer toy","chibi","vinyl figure","Pop Mart style","collectible figurine","glossy resin","kawaii","cute","3D render"],"name_cn":"3D盲盒潮玩","name_en":"3D Blind Box Designer Toy","negatives":["写实毛发","真实皮肤纹理","粗糙哑光质感","复杂环境背景","杂物","模糊","多余手指","融手","断臂","多余肢体","皱纹","金属锈蚀","破损","倾斜"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，3D盲盒潮玩风格，Q版二头身大头小身比例，光滑搪胶乙烯基质感，圆润造型与手工涂装，纯色背景，{color}，{mood}，C4D三维渲染","recommended_aspect":"3:4"},{"category":"设计/3D类","default_subject_example":"一座小型未来生态城市社区,带屋顶花园与空中连廊","donts":["不要加透视消失点,会破坏等距平行感","不要写成写实照片或厚重油画质感,必须保持扁平矢量","不要塞太多元素,色块会糊成一团","不要指定厚重笔触或写实光影","不要让元素漂浮悬空,需落在基础平面上"],"dos":["明确写出'30度等角投影''平行无透视',锁死视角","把配色限制在4-5色,指定一套协调色系再交给{color}","始终强调'扁平矢量色块',防止漂移成3D写实","描述一个地面/基座平面,让元素有落脚点","加少量小人物或物件作尺度参照,增强微缩精致感"],"drift_risks":[{"fix":"模板钉死'30度等角投影、平行无透视、无消失点',排除词加'一点透视、消失点、透视线'","risk":"等距视角塌成普通透视——线条汇聚到消失点,平行感丢失","severity":"HIGH"},{"fix":"强调'扁平矢量、纯色块、2.5D插画',排除'写实照片、立体3D渲染、真实光影'","risk":"渲染漂移成写实3D——矢量扁平变成带反射的真实材质","severity":"HIGH"},{"fix":"在模板和{color}里限定'4-5色统一色系',排除'色彩杂乱'","risk":"配色混乱——元素各自为政,调色板失控","severity":"MEDIUM"},{"fix":"指定'单一左上光源、统一柔和投影方向'","risk":"投影方向不一致——不同物体阴影朝向乱","severity":"MEDIUM"},{"fix":"描述'统一基座/地面平面,所有元素落于其上'","risk":"元素漂浮悬空——物件不落地,缺乏基础平面","severity":"LOW"}],"id":"isometric-illustration","keywords_cn":["等距插画","等角投影","30度视角","2.5D","矢量扁平","色块","渐变","微缩模型","立体场景","精致细节","设计感","无透视"],"keywords_en":["isometric","isometric projection","axonometric","2.5D","vector flat","flat design","miniature diorama","color blocks","gradient","clean illustration"],"name_cn":"等距插画","name_en":"Isometric Illustration","negatives":["透视消失点","透视线汇聚","鱼眼变形","写实照片质感","厚重油画笔触","立体反射材质","模糊","倾斜","混乱线条","色彩杂乱","文字乱码","漂浮元素"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，等距插画风格，30度等角投影与三轴平行，2.5D矢量扁平质感，色块平涂搭配细腻渐变，统一方向的投影，{color}，{mood}，矢量渲染","recommended_aspect":"1:1"},{"category":"设计/3D类","default_subject_example":"一张主题为'夏日回响'的户外音乐节宣传海报","donts":["不要写长段落或长句,文字必崩","不要混用多种字体字风,层级会乱","不要在海报里塞写实照片主体,破坏平面图形感","不要堆砌过多装饰元素,会糊掉网格","不要把主标题写斜或旋转,文字极易错位"],"dos":["把要渲染的中文标题字符原样写进描述(如'夏日回响'),Seedream中文出字较稳","标题控制在2-4字,指定'加粗无衬线黑体',字形越简单越不容易崩","留白要明确写'大面积留白、呼吸感',防止填满","配色限制2-3主色,先指定调性再交给{color}","点名'瑞士国际主义/包豪斯'等设计语言锁定排版气质"],"drift_risks":[{"fix":"标题压到2-4字,直接把字符写进描述,指定'加粗无衬线黑体',避开生僻字和长句;即梦中文出字较稳但仍需短","risk":"中文文字渲染乱码错字——即使即梦擅长中文,复杂长标题仍会出乱码、错笔划、增减笔画","severity":"HIGH"},{"fix":"模板钉死'大胆留白、网格对齐、层级清晰',主体元素数量控制在3-4个","risk":"排版混乱失去留白——元素堆满画面,网格层级崩塌","severity":"HIGH"},{"fix":"指定'统一字体、单一字族、标题正文两级层级'","risk":"字体混用不协调——多种字风打架,失去整体感","severity":"MEDIUM"},{"fix":"指定'高饱和高对比、2-3主色',并在{color}里写明色相","risk":"配色发灰发脏——高对比海报变成低饱和 muddy 调","severity":"MEDIUM"},{"fix":"强调'水平基线对齐、网格对齐',排除'倾斜'","risk":"文字倾斜错位——标题歪斜、行间距不一","severity":"LOW"}],"id":"graphic-poster","keywords_cn":["图形海报","平面设计","排版","字体层级","留白","网格","几何块面","编辑设计","瑞士国际主义","包豪斯","印刷质感","高对比"],"keywords_en":["graphic poster","typography","layout","negative space","grid system","Swiss design","editorial","high contrast","print quality","Bauhaus","graphic design"],"name_cn":"图形海报排版","name_en":"Graphic Poster Layout","negatives":["立体3D渲染","写实照片主体","模糊字体","错别字","多余笔画","倾斜文字","色彩杂乱","多余装饰","光泽塑料质感","低分辨率","长段落文字","多种字体混用"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，图形海报设计风格，强烈的字体层级与几何块面分割，大胆留白与严谨网格对齐，标题加粗无衬线黑体，瑞士国际主义设计，{color}，{mood}，印刷质感","recommended_aspect":"3:4"},{"category":"设计/3D类","default_subject_example":"一间极简日式茶室,橡木榻榻米与整面落地窗","donts":["不要往空间里放人物,极易崩肢体且破坏空旷感","不要堆满家具,留白是空间摄影的灵魂","不要混搭冲突的建筑风格(如和式+巴洛克)","不要忘掉光源方向,无主光的空间会发灰","不要指定过广的焦段(如16mm)会畸变"],"dos":["写明具体材质及纹理,如'橡木开放漆、清水混凝土、哑光水泥'","指定透视类型(一点透视居中/两点透视对角)锁视角","描述光源方向与性质,如'南向柔和漫射天光'","放一两件家具或绿植作尺度参照,体现纵深","点名设计流派(侘寂/粗野主义/中古现代)锁定气质"],"drift_risks":[{"fix":"指定'一点透视、横平竖直、镜头矫正、24-35mm广角控制畸变'","risk":"透视畸变与 unintended 鱼眼——竖线内倾外倒,地平歪斜","severity":"HIGH"},{"fix":"强调'结构合理、符合物理、墙体楼板连贯',家具布局保持简单对称","risk":"不可能建筑——艾舍尔式的墙体错接、悬空楼梯、穿模家具","severity":"HIGH"},{"fix":"点名具体材质与纹理(橡木木纹、清水混凝土孔隙、亚麻肌理),排除'光滑塑料'","risk":"材质过度光滑塑料化——木纹混凝土纹理丢失,变成塑料贴皮","severity":"MEDIUM"},{"fix":"描述单一光源与时段(如'午后南向漫射光、柔和阴影'),指定色温","risk":"光照平淡或局部过曝死黑——无主光、阴影死黑一片","severity":"MEDIUM"},{"fix":"指定'统一色温(如日光5500K)',并在{color}里点明冷暖倾向","risk":"色温失真——整体偏黄偏蓝,与设计意图不符","severity":"LOW"}],"id":"architecture-interior","keywords_cn":["建筑摄影","室内空间","一点透视","材质纹理","纵深","尺度感","自然光","氛围光","建筑可视化","空间感","侘寂","极简"],"keywords_en":["architectural photography","interior design","one-point perspective","material texture","depth","scale","natural light","architectural visualization","spatial","minimalist","wabi-sabi"],"name_cn":"建筑/室内空间","name_en":"Architecture / Interior Space","negatives":["人物","杂物堆积","文字水印","logo","倾斜地平线","鱼眼畸变","色温失真","过曝","死黑阴影","光滑塑料质感","悬空结构","穿模"],"prompt_template_cn":"{subject}，{composition}，{lens}，{lighting}，建筑空间摄影质感，丰富的材质纹理与结构线条，一点透视，真实人体尺度感，结构关系严谨合理，{color}，{mood}","recommended_aspect":"16:9"}];
+
+const DIM = {"color":[{"id":"color_warm","label_cn":"暖调","phrase_cn":"整体偏暖色调，以橙黄红为主，温馨明亮"},{"id":"color_cool","label_cn":"冷调","phrase_cn":"整体偏冷色调，以蓝青为主，清冷通透"},{"id":"color_lowsat","label_cn":"低饱和","phrase_cn":"低饱和度处理，色彩内敛淡雅、情绪克制"},{"id":"color_morandi","label_cn":"莫兰迪灰调","phrase_cn":"莫兰迪灰调，柔和的低饱和中间色，高级耐看"},{"id":"color_highsat","label_cn":"高饱和互补","phrase_cn":"高饱和互补色对比，视觉冲击强烈、色彩饱满"},{"id":"color_mono","label_cn":"黑白单色","phrase_cn":"黑白单色调，去除色彩干扰，专注光影与质感"},{"id":"color_film","label_cn":"胶片色","phrase_cn":"胶片质感色调，柔和颗粒、轻微偏色、怀旧氛围"},{"id":"color_tealorange","label_cn":"青橙电影调","phrase_cn":"青橙色调，暗部偏青、肤色偏暖，电影感十足"},{"id":"color_pastel","label_cn":"马卡龙浅彩","phrase_cn":"马卡龙浅彩色调，粉嫩轻盈、梦幻柔和"}],"composition":[{"id":"comp_closeup","label_cn":"特写","phrase_cn":"极致特写镜头，主体细节充满整个画面"},{"id":"comp_halfbody","label_cn":"半身","phrase_cn":"半身构图，人物自腰部以上入镜"},{"id":"comp_fullbody","label_cn":"全身","phrase_cn":"全身构图，人物全身入镜，身形、服饰与姿态完整呈现"},{"id":"comp_wide","label_cn":"远景大场景","phrase_cn":"远景大场景，人物置身广阔环境之中，环境占据画面主体"},{"id":"comp_topdown","label_cn":"俯视","phrase_cn":"高角度俯视构图，自上而下俯瞰主体，呈上帝视角"},{"id":"comp_lowangle","label_cn":"仰视","phrase_cn":"低角度仰视构图，镜头自下向上仰拍主体"},{"id":"comp_symmetric","label_cn":"对称构图","phrase_cn":"居中对称构图，主体居中，左右两侧严格对称"},{"id":"comp_thirds","label_cn":"三分法","phrase_cn":"三分法构图，主体落于画面黄金分割点"},{"id":"comp_negspace","label_cn":"大面积留白","phrase_cn":"大面积留白构图，主体偏置一侧"}],"lens":[{"id":"lens_ultrawide","label_cn":"超广角16mm","phrase_cn":"16mm超广角镜头，视野开阔、透视夸张，画面边缘略带张力"},{"id":"lens_35mm","label_cn":"35mm街拍","phrase_cn":"35mm人文焦段，带环境叙事，街拍纪实质感"},{"id":"lens_50mm","label_cn":"50mm标准","phrase_cn":"50mm标准镜头，接近人眼视角，自然真实无畸变"},{"id":"lens_85mm","label_cn":"85mm人像","phrase_cn":"85mm人像焦段，背景柔和虚化、主体突出，肤质细腻"},{"id":"lens_tele","label_cn":"长焦200mm","phrase_cn":"200mm长焦镜头，强烈压缩空间、背景贴附、虚化绵密"},{"id":"lens_macro","label_cn":"微距","phrase_cn":"微距镜头，极致放大细节，纤毫毕现、景深极浅"},{"id":"lens_tiltshift","label_cn":"移轴","phrase_cn":"移轴镜头，俯拍呈现微缩模型般的移轴效果"},{"id":"lens_fisheye","label_cn":"鱼眼","phrase_cn":"鱼眼镜头，强烈球面畸变、180度夸张视角"},{"id":"lens_none","label_cn":"无镜头(插画)","phrase_cn":"平面化构图，二维视角，无光学透视压缩"}],"lighting":[{"id":"light_golden","label_cn":"黄金时刻","phrase_cn":"黄昏黄金时刻，温暖低斜的阳光洒满画面，光影柔和金黄"},{"id":"light_blue","label_cn":"蓝调时刻","phrase_cn":"蓝调时刻，日落后深蓝色天光笼罩、静谧冷调"},{"id":"light_backlit","label_cn":"逆光轮廓","phrase_cn":"逆光拍摄，勾勒主体金色轮廓光、发丝透光"},{"id":"light_side","label_cn":"侧光","phrase_cn":"侧面光线，强化立体感与肌理质感，明暗过渡明确"},{"id":"light_window","label_cn":"窗户自然光","phrase_cn":"窗户洒入的柔和自然光，方向明确、细腻温润"},{"id":"light_studio","label_cn":"影棚布光","phrase_cn":"影棚专业布光，柔光箱主光配轮廓辅光，干净通透"},{"id":"light_neon","label_cn":"霓虹光","phrase_cn":"霓虹灯光，多彩人造光源交错，赛博都市氛围"},{"id":"light_volumetric","label_cn":"体积光","phrase_cn":"体积光丁达尔效应，光束穿透空气中的尘埃，神圣空灵"},{"id":"light_chiaroscuro","label_cn":"明暗对比","phrase_cn":"伦勃朗式明暗对比，强光与深影交织，戏剧张力十足"},{"id":"light_flat","label_cn":"平面均匀光(插画)","phrase_cn":"平面均匀散射光，无强烈方向与阴影，柔和干净，适合插画与二维美术"}]};
+
+const PLATFORM = {"donts":["Don't write Midjourney-style English/Chinese tag piles ('少女,汉服,樱花,古风,8k,杰作,精致') — Jimeng is a Chinese natural-language model; feed it coherent prose sentences.","Don't stack conflicting style tags ('照片级真实 + 水彩 + 3D渲染 + 油画') — the model averages co-equal styles into blur and chaos. Pick ONE dominant style; let other terms modify (lighting, mood) rather than compete.","Don't stuff the prompt with empty quality buzzwords — '8k, masterpiece, best quality, 杰作, 顶级画质' are leftover SD/MJ tags that add little for a modern Chinese-native model and dilute meaningful tokens.","Don't push skin 'perfection' language too hard ('完美无瑕的肌肤') — it triggers over-smoothing and the plastic/AI-skin look. Prefer concrete texture language ('带细微毛孔的真实皮肤').","Don't expect perfect long-form text rendering — keep in-image Chinese short (a few characters), verify the output, and re-roll garbled glyphs rather than over-specifying.","Don't rewrite a winning prompt wholesale when iterating — change ONE variable (lighting OR color OR lens) per variation so you can attribute the effect, and lock the seed to isolate that change.","Don't ignore the aspect ratio — it reshapes composition and cropping, so specify placement/负空间 with the target frame (e.g. 16:9 vs 9:16) in mind.","Don't split a complex scene across multiple co-equal focal points in one prompt; that over-stuffs and confuses the model. Build the scene around ONE clear subject first."],"dos":["Write in fluent, coherent Chinese descriptive sentences — treat prompt-writing like describing a single film frame in a novel, not like tagging.","Lead with the subject (who/what, with specifics: garment, color, action), then layer composition, lighting, color, texture, mood, and ONE dominant style.","Use concrete photographic language: name focal lengths (85mm人像, 35mm广角), light setups (侧逆光, 黄金时刻, 柔和窗光, 体积光), depth-of-field (浅景深), and explicit color palettes (青橙色调, 低饱和).","Keep exactly ONE dominant style per prompt (photo-real OR illustration OR 水彩 OR 油画); other terms should modify that style, not compete with it.","Add a short, specific negative-prompt list (排除词) to suppress common drift: extra/merged fingers and limbs, garbled or extra text, watermarks and logos, blur, deformity, plastic skin.","Place and count elements concretely ('三只红灯笼挂在屋檐下', '傍晚的光线') rather than using vague quantities.","For Chinese text inside the image, keep it short, put the exact characters in the prompt, and always verify the rendered output — re-roll if glyphs deform.","When iterating, change ONE variable at a time and lock the seed so you can attribute each effect and reproduce good compositions.","Match composition language to your chosen aspect ratio (use 16:9/21:9 negative space language, 9:16 vertical framing, etc.) to avoid unwanted cropping of the subject."],"key_findings":["PROMPT LANGUAGE — DESCRIPTIVE CHINESE PROSE, NOT TOKEN PILES. The single most important Jimeng/Seedream methodological point, and the sharpest contrast with Midjourney: Seedream was trained as a Chinese-native model and is engineered to parse fluent natural-language Chinese. The optimal prompt is a coherent scene description — the way you would write one shot in a novel or a film treatment — not a comma-separated dump of tags. Compare a weak tag pile ('少女, 汉服, 樱花, 古风, 8k, 杰作, 电影感') with a strong prose prompt: '一位身着月白色汉服的少女站在盛开的樱花树下，微风轻拂发丝，侧逆光勾勒出柔和的面部轮廓，浅景深虚化背景，淡粉与青灰的低饱和色调，整体呈现温润清雅的东方古典氛围，照片级写实风格，皮肤纹理细腻真实。' The second is what Seedream rewards: every dimension specified, ONE dominant style, grammatical flow the model can read as a unified semantic. English token-style prompting is the #1 reason Western users under-perform on Jimeng.","STRUCTURE — THE NINE-PART FORMULA WOVEN INTO ONE SENTENCE. A great prompt covers, in roughly this order: 主体 (subject — lead with this, with concrete specifics like garment/color/action) → 构图 (composition/framing/negative space) → 镜头/焦段 (lens: 85mm人像, 35mm广角, 浅景深, f/1.4) → 光影 (lighting: 黄金时刻, 侧逆光, 柔和窗光, 体积光) → 色调 (color palette: 青橙色调, 低饱和, 电影感青绿) → 材质/纹理 (material/texture: 皮肤毛孔, 织物, 湿润光泽) → 氛围 (mood) → 风格 (style) → 质量修饰 (quality). The discipline is not to fill every slot mechanically but to make sure nothing important is left to the model's default — and to weave them into one sentence rather than a list. Lead-with-subject matters both for clear writing and because it sets the model's primary attention early.","LENGTH — SPECIFICITY WINS, NOT WORD COUNT. Seedream does not reward length for its own sake; it rewards specificity and coherence. A good Chinese prompt is typically a 1–3 sentence description (roughly 50–200 characters for most scenes, more for complex multi-element compositions). Too short and the model fills gaps with generic defaults (you lose control of lighting, palette, framing); too long and over-stuffed and you dilute focus and invite contradiction, which diffusion models resolve as blur or visual chaos. Prefer one concrete, well-specified scene over five loosely-connected ideas in one prompt. If you need a second idea, generate it separately.","THE ONE-DOMINANT-STYLE RULE (BIGGEST BEGINNER FAILURE). Pick exactly ONE dominant style per generation: either photorealistic, OR watercolor, OR 3D render, OR oil painting, OR 国风插画 — never co-equal stacks like '照片级真实 + 水彩 + 3D渲染 + 油画'. Sub-attributes can modify the dominant style ('照片级写实，带有油画质感的光影' is fine, because lighting is subordinate), but two co-equal styles get averaged into a muddy, indecisive image. This is universal diffusion wisdom but bites especially hard on a high-fidelity model like Seedream where the conflict shows up as visible blur, plastic textures, or compositional chaos.","QUALITY MODIFIERS — CONCRETE BEATS BUZZWORDS. Modifiers that actually move the output address a specific dimension the model can act on: lighting ('黄金时刻的侧逆光', '体积光穿过窗帘'), lens/depth ('85mm人像镜头，浅景深'), texture ('可见的皮肤毛孔与细小绒毛', '织物纹理清晰'), color grade ('青橙电影色调', '低饱和高对比'). Modifiers that are mostly empty calories on a modern model: '8k, masterpiece, best quality, 杰作, 顶级画质, 超高清'. These are leftover Stable Diffusion / Midjourney tags; Seedream is already biased toward high quality so they add little signal and mostly dilute the meaningful tokens. A mild '高质量、细节丰富' does no harm, but don't mistake buzzword-stuffing for prompt engineering. (Confidence that English 8k/masterpiece tags are near-noise on Seedream: medium-high; the odd Chinese '高清' may give a faint nudge, but concrete terms always dominate.)","SEEDREAM-SPECIFIC STRENGTHS TO LEAN INTO. (1) Chinese text rendering inside images is genuinely strong — you can ask for 招牌/海报/题字 with actual characters and get legible output far more reliably than Western models, though long strings and rare/complex characters still drift, so keep in-image text short and always verify. (2) Photorealism, especially skin, eyes, hair, fabric, food — among the best; lean on this rather than fighting it. (3) Reference-image / 图生图 workflow: upload references for character or style consistency and use the regeneration-strength (重绘幅度) control — high strength deviates more from the reference, low strength stays closer. For keeping a character consistent across shots, reference image + moderate strength beats long verbal description. (4) Multi-image fusion — combining multiple references (e.g. a pose ref + a style ref) — is a Seedream differentiator. (5) Chinese aesthetics: 国风/古风/东方古典, Chinese urban scenes, 中国节庆 imagery are home turf; the model's defaults and training skew here, so you need fewer style tokens to land them than a Western model would. (Exact UI field names like '重绘幅度' and the precise multi-image fusion controls evolve between releases — the concepts are stable, verify current labels in-app.","JIMENG vs MIDJOURNEY — THE OPERATING MODEL DIFFERENCE. Midjourney is optimized for English, comma-separated tags, and parameter flags (--ar, --no, --cref, --sref); its aesthetic default skews Western/illustration/gallery. Jimeng/Seedream is optimized for Chinese prose, exposes aspect ratio and negatives through GUI fields rather than CLI flags, has reference-image upload as a first-class workflow, and its aesthetic default is more photorealistic and China-native. Practical consequence: do not port a Midjourney prompt directly. Translate the intent into a Chinese descriptive paragraph, move '--ar 16:9' to the aspect selector, move '--no watermark' to 排除词, and move '--cref' to the 图生图 reference slot. Same underlying image-gen principles; different input grammar.","DRIFT RISKS & MITIGATIONS. Universal diffusion failures still apply to Seedream: extra/merged fingers and limbs (worsened when hands are weight-bearing or interacting with objects), garbled text (worse on long or non-Chinese strings), over-smoothed/plastic skin (worsened by stacking '完美肌肤' type terms — prefer '真实皮肤纹理，带细微毛孔'), and watermark/logo artifacts (the model sometimes invents fake watermarks; suppress with 排除词). Two mitigations do most of the work: (a) a standard negative-prompt block targeting 多余的手指/肢体、错误或多余的文字、水印、模糊、变形, and (b) keeping the positive prompt coherent and uncontradictory so the model isn't pushed toward chaos. Re-rolling with a locked seed while changing one variable at a time is the fastest path to a fix — don't rewrite the whole prompt blind."],"platform_tips":["Jimeng/Seedream is Chinese-native: write prompts as fluent Chinese descriptive sentences. This single shift matters more than any other tactic — it's why Western/Midjourney habits under-perform here.","Use the 图生图 (reference-image) upload for character/style consistency instead of trying to describe a face or style in words — pair it with the 重绘幅度/strength control (low = closer to reference, high = more deviation).","Keep a standing 排除词 (negative prompt): 多余的手指/肢体, 错误或多余的文字, 水印, 标志, 模糊, 变形, 塑料感皮肤 — this neutralizes most common drift in one move.","For Chinese text inside images, keep it short, quote the exact characters in the prompt, and verify — Seedream is strong but long/rare characters still drift.","Pick ONE dominant style per image and let other terms modify it (lighting, mood), never stack co-equal styles (photo + watercolor + 3D) — that produces blur and chaos on a high-fidelity model.","Skip the English buzzword tags (8k, masterpiece, best quality). Replace with concrete photographic language: named focal lengths, named lighting setups, explicit color grades, named textures.","Lead the sentence with the subject and its specifics; place background and supporting elements after — clearer for the model and better composition.","Use the aspect-ratio selector deliberately: match your composition language to the frame (16:9 negative space, 9:16 vertical, etc.) to avoid the subject getting cropped.","Lock the seed when you get a composition you like, then change one variable per re-roll — this is the fastest way to converge and to learn what each lever does.","Lean into Seedream's home turf — 国风/古风/中国节庆/中式城市/东方美学 need fewer style tokens to land than on Western models; let the model's defaults work for you.","Confidence flags: stable/high-confidence = Chinese-prose prompting, one-dominant-style rule, concrete-vs-buzzword modifiers, negative-prompt mitigations, reference-image workflow concept. Medium/evolving = exact UI field names (排除词/图生图/重绘幅度), exact Seedream 4.x version features, precise multi-image fusion mechanics — concepts are solid, verify current labels in-app."]};
+
+const ANTI = {"donts":["不要堆叠相互冲突的风格词(摄影写实+油画+水彩+3D+赛博朋克并列)——必出模糊/撕裂废图。","不要像 Midjourney 那样写一串逗号分隔的英文标签;即梦吃不通顺的中文描述句。","不要在一个画面里塞过多主体/道具(五人+桌子+花瓶+猫+雪山+墙画+地毯)——注意力被稀释,每个元素都半成品。","不要单独靠'美/好看/高质量/杰作/award-winning'这类空泛词撑画面,它们不携带可渲染信息。","不要把手藏在背后或物体后面——遮挡会被模型自行脑补成畸形手;要么明确描述手部动作,要么让它简单完整可见。","不要要求长文、艺术字、或曲面(瓶身/布料褶皱)上的文字;需要时用短词+平面载体+标准字体。","不要提品牌名、'图库照/官方图/高清壁纸'——这些词触发 logo 与半透明水印复现。","不要同时写多个光源方向(侧光+逆光+顶光+霓虹)——光影打架,阴影矛盾,整体发灰。","不要把头顶、脚底、手指、手肘顶在画框边缘——比例不适配时直接被裁。","不要堆'完美/无瑕/光滑/细腻皮肤'+ '8K' 这类词——模型审美偏向无瑕,叠加后产出蜡人/瓷娃娃。","不要让多个人物身体重叠——极易出现肢体粘连、fused body。人群控制在 3 人以内且不重叠。","不要指望一张图一次性满足所有需求;复杂场景、多元素合成请分层迭代(图生图叠加)。","不要把希望全押在质量词(8K/超高清/极致细节)上——对 Seedream 这类已调优模型边际收益低,反而挤占有效 token、推塑料感与过锐。"],"dos":["用通顺连贯的中文白话句子写提示词——即梦母语是中文描述,不是 MJ 式逗号 token。","一张图只定一个主导风格;要融合时写成'以摄影写实为主,略带油画质感'的主+辅结构,绝不并列平铺。","按'主体→构图→镜头/焦段→光影→色调→材质→氛围→风格→质量'的顺序组织一段连贯描述。","主体要具体可渲染:身份/年龄/服饰/姿势/表情/朝向都说清,而不是笼统的'一个女孩'。","指定一个主光源 + 明确方向 + 光质(如左侧窗户柔和自然光斜照、顶部漫射柔光),需要补光写'轻微右侧反光'。","给出明确配色:一个主色 + 一个点缀色 + 冷暖调(如暖色调,主色橙黄,点缀深蓝),避免模型自由发灰。","按主体选比例:全身人像 9:16 或 3:4 竖图,头像特写 1:1,风光/合影 16:9 或 3:2 横图,并在文字里点明'全身入镜'。","让手部简单且完整可见,或明确描述其动作(如双手自然交叠于膝上),避免手被遮挡或在画框边缘。","需要中文文字时,用引号写明确切短字(≤6 字),指定标准字体(黑体/宋体)+ 平面载体(招牌/纸面/墙);Seedream 中文渲染是相对强项。","用参考图(图生图)做角色/场景一致性——这是 Seedream 的强项,远比纯文字反复抽卡稳定。","用排除词(负面提示)反向雕刻,主动剔除高频失败模式(见 universal_negatives);每个失败模式都有对应的负面词。","一个画面只聚焦一个主角 + 一个焦点道具,其余元素降级为氛围/背景(如简洁的室内,窗外隐约可见雪山)。","复杂需求分层迭代:先出主体定稿,再图生图补背景/细节/文字,不要一张图塞到底。"],"drift_risks":[{"fix":"负面词加'多余的手指,变形的手,六指,断指,手指粘连,多余的肢体,肢体融合'。措辞上让手保持简单且完整可见(如双手自然垂于身侧、右手轻握茶杯),避免手被遮挡或在画框边缘被裁;避免人物身体重叠的多人合照(≤3 人);手部关键时改用图生图提供参考手势。","risk":"人物手部、手指、肢体重复或融合——多一根手指、手背长出肢体、群体照里两人身体粘连。手部是高频细节且拓扑学上不稳定,几乎所有全身/半身人像都会受影响,是出图废片率最高的单一原因。","severity":"high"},{"fix":"一张图只保留一个主导风格。要融合时写成'以摄影写实为主,略带油画质感'这种主+辅结构,绝不平铺并列。负面词加'风格混乱,质感冲突,模糊'。","risk":"同一提示词里堆叠'摄影真实 + 油画 + 水彩 + 3D 渲染 + 赛博朋克'等相互冲突的风格,模型在多个梯度间平均,产出模糊、混沌、风格撕裂的废图,皮肤呈油画塑料感。","severity":"high"},{"fix":"只保留一个主角 + 一个焦点道具,其余降级为氛围/背景(如简洁的室内,窗外隐约可见雪山)。需要复杂场景时分层生成:先出主体,再图生图补细节。砍掉冗余的质量词(见第14条)。","risk":"一个画面塞进过多主体/道具/细节(五个人+桌子+花瓶+猫+窗外雪山+墙上画+地毯纹样),注意力被稀释,模型丢三落四、张冠李戴,每个元素都是半成品。","severity":"high"},{"fix":"负面词加'乱码,错字,镜像字,变形的文字,模糊不清的文字'。文字尽量短(≤6 字最佳),用标准字体(无衬线/黑体/宋体),放在平面载体(招牌/纸面/墙面)上,在引号里写明确切字(如招牌上写着茶馆两字)。长文/艺术字不可靠时分层后期合成。","risk":"长文、小字、装饰性字体、曲面上(瓶身/布料褶皱)的文字、混排中外文会乱码、错字、镜像字。注意 Seedream 4.x 中文渲染是相对强项,翻车概率低于 MJ/SD,但长文/艺术字仍不可靠。","severity":"medium"},{"fix":"负面词加'塑料感,瓷娃娃,过度磨皮,假人,油光,不自然的光滑'。措辞改成'真实皮肤纹理,细微毛孔,几颗雀斑,自然质感';用'柔和自然光'替代'影棚硬光';不要堆'完美/无瑕/光滑/细腻肌肤'+ '8K'。","risk":"模型审美偏向'无瑕',叠加'完美肌肤/光滑/无瑕/8K'后产出蜡人、瓷娃娃、油光塑料皮,毫无毛孔纹理,人像失真感强。","severity":"medium"},{"fix":"负面词加'水印,签名,logo,图标,角标,二维码,条形码,版权标记'。措辞上不提品牌名、不说'官方图/图库照/高清壁纸'。","risk":"训练集混入带水印图库照,模型复现半透明水印、右下角签名、品牌角标 logo、二维码、条形码,毁掉成片。","severity":"medium"},{"fix":"按主体选比例——全身人像用 9:16 或 3:4 竖图,头像特写用 1:1,风光/合影用 16:9 或 3:2 横图。措辞明确构图(如全身入镜头顶脚底各留白、胸部以上半身像)。","risk":"选错比例导致头顶/脚底/手肘被裁,主体被挤压,构图失衡,尤其是全身人像配 1:1 或横图。","severity":"medium"},{"fix":"措辞指定'简洁背景/纯色背景/虚化背景/单一色调墙面',或用浅景深(大光圈,背景柔焦虚化)。负面词加'杂乱的背景,多余的物体,干扰元素,杂物'。","risk":"默认背景杂物堆积,喧宾夺主,主角被吞没,模型还会自创不相干物体塞进画面。","severity":"medium"},{"fix":"负面词加'变形,畸形,不对称的脸,多余的牙齿,反向关节,长脖子,身体粘连'。人群控制在 ≤3 人且不重叠;面部重要的人物用中近景而非远景小脸。","risk":"除手之外的解剖错误:多人身体粘连、关节反向、牙齿过多、双眼不对称、脖子过长、腿弯错方向,尤其是远景小脸人像。","severity":"medium"},{"fix":"文字描述与参考图的关键特征保持一致(同一个人、同一套衣服),不要在文字里改掉参考图的核心要素;需要大改时降低参考权重或更换参考图。","risk":"图生图/角色一致性场景下,文字描述与参考图矛盾,模型在两者间妥协,角色面部、服装、场景特征漂移。","severity":"low"},{"fix":"只指定一个主光源 + 方向(如左侧窗户柔和自然光斜照、顶部柔和漫射光),需要补光写'轻微右侧反光'。负面词加'光线混乱,过曝,死黑'。","risk":"同时写'侧光 + 逆光 + 顶光 + 霓虹光'导致光影打架、阴影方向矛盾、整体发灰发脏。","severity":"low"},{"fix":"明确一个主色 + 一个点缀色 + 冷暖(如暖色调,主色橙黄,点缀深蓝)。负面词加'发灰,色彩浑浊,过饱和'。","risk":"颜色 cue 被忽略或混色,画面发灰、色相不一致、主色被冲淡。","severity":"low"},{"fix":"重要面部用中近景(胸部以上半身像),或出图后裁切放大。负面词加'面部变形,五官不对称,模糊的脸'。","risk":"远景/小脸人像里五官糊成一团、左右脸不对称、眼睛畸变。","severity":"low"},{"fix":"至多保留一个质量短语(如高细节摄影),把省下的篇幅留给具体的主体、光影、材质描述。","risk":"堆'4K,8K,超高清,极致细节,杰作,最佳质量'等词,对 Seedream 这类已调优模型帮助有限,反而推向塑料感/过锐,并挤占有效 token。","severity":"low"}],"universal_negatives":["多余的手指","变形的手","六指","断指","多余的肢体","肢体融合","畸形","不对称的脸","五官变形","长脖子","反向关节","塑料感","瓷娃娃","过度磨皮","假人","油光","不自然的光滑","模糊","乱码","错字","镜像字","水印","签名","logo","角标","二维码","条形码","版权标记","杂乱的背景","多余的物体","干扰元素","发灰","色彩浑浊","过曝","死黑","光线混乱","风格混乱","低质量","噪点"]};
+
+const ASPECTS = ['1:1','3:4','4:3','4:5','16:9','9:16','21:9','2:3','3:2'];
+
+// ---- sensible per-style dimension + mood defaults ----
+const STYLE_DIM_DEFAULTS = {
+  'portrait-photo':{composition:'comp_halfbody',lens:'lens_85mm',lighting:'light_window',color:'color_warm'},
+  'food-closeup':{composition:'comp_closeup',lens:'lens_macro',lighting:'light_side',color:'color_warm'},
+  'product-stilllife':{composition:'comp_closeup',lens:'lens_50mm',lighting:'light_studio',color:'color_lowsat'},
+  'film-still':{composition:'comp_wide',lens:'lens_35mm',lighting:'light_golden',color:'color_film'},
+  'ink-chinese':{composition:'comp_negspace',lens:'lens_none',lighting:'light_flat',color:'color_lowsat'},
+  'watercolor-childrenbook':{composition:'comp_thirds',lens:'lens_none',lighting:'light_window',color:'color_pastel'},
+  'oil-painting':{composition:'comp_halfbody',lens:'lens_none',lighting:'light_chiaroscuro',color:'color_warm'},
+  'flat-minimal-illustration':{composition:'comp_symmetric',lens:'lens_none',lighting:'light_flat',color:'color_morandi'},
+  'cyberpunk':{composition:'comp_wide',lens:'lens_35mm',lighting:'light_neon',color:'color_tealorange'},
+  'retro-vaporwave':{composition:'comp_symmetric',lens:'lens_none',lighting:'light_neon',color:'color_pastel'},
+  'dark-fantasy':{composition:'comp_thirds',lens:'lens_35mm',lighting:'light_chiaroscuro',color:'color_lowsat'},
+  'ghibli-healing':{composition:'comp_wide',lens:'lens_none',lighting:'light_golden',color:'color_warm'},
+  '3d-blindbox-toy':{composition:'comp_closeup',lens:'lens_50mm',lighting:'light_studio',color:'color_pastel'},
+  'isometric-illustration':{composition:'comp_symmetric',lens:'lens_none',lighting:'light_flat',color:'color_morandi'},
+  'graphic-poster':{composition:'comp_symmetric',lens:'lens_none',lighting:'light_flat',color:'color_highsat'},
+  'architecture-interior':{composition:'comp_wide',lens:'lens_35mm',lighting:'light_window',color:'color_lowsat'}
+};
+const STYLE_MOOD = {
+  'portrait-photo':'自然不做作的情绪，温柔静谧',
+  'food-closeup':'诱人的食欲感与温馨烟火气',
+  'product-stilllife':'干净专业的商业氛围',
+  'film-still':'电影叙事的沉浸氛围，情绪饱满',
+  'ink-chinese':'空灵悠远的东方意境，淡泊宁静',
+  'watercolor-childrenbook':'童趣治愈的温暖氛围',
+  'oil-painting':'厚重戏剧性的古典氛围',
+  'flat-minimal-illustration':'现代简约的设计感，克制优雅',
+  'cyberpunk':'高科技低生活的赛博氛围，冷峻迷离',
+  'retro-vaporwave':'迷幻唯美的怀旧梦境氛围',
+  'dark-fantasy':'阴暗诡谲的史诗氛围，神秘压抑',
+  'ghibli-healing':'温暖治愈的田园诗意，清新明亮',
+  '3d-blindbox-toy':'呆萌可爱的潮流氛围，精致讨喜',
+  'isometric-illustration':'精致微缩的设计感，干净明快',
+  'graphic-poster':'现代编辑的视觉张力，克制有力',
+  'architecture-interior':'自然通透的空间氛围，宁静留白'
+};
+const DIM_EN = {
+  composition:{comp_closeup:'close-up',comp_halfbody:'half-body',comp_fullbody:'full-body',comp_wide:'wide shot',comp_topdown:'top-down',comp_lowangle:'low angle',comp_symmetric:'symmetrical',comp_thirds:'rule of thirds',comp_negspace:'negative space'},
+  lens:{lens_ultrawide:'16mm ultrawide',lens_35mm:'35mm',lens_50mm:'50mm',lens_85mm:'85mm portrait',lens_tele:'200mm telephoto',lens_macro:'macro',lens_tiltshift:'tilt-shift',lens_fisheye:'fisheye',lens_none:'no lens'},
+  lighting:{light_golden:'golden hour',light_blue:'blue hour',light_backlit:'backlit',light_side:'side lighting',light_window:'window light',light_studio:'studio lighting',light_neon:'neon',light_volumetric:'volumetric light',light_chiaroscuro:'chiaroscuro',light_flat:'flat even light'},
+  color:{color_warm:'warm tone',color_cool:'cool tone',color_lowsat:'low saturation',color_morandi:'Morandi palette',color_highsat:'high saturation complementary',color_mono:'monochrome',color_film:'film tone',color_tealorange:'teal and orange',color_pastel:'pastel macaron'}
+};
+const PRESETS = [
+  {label:'人像写真',id:'portrait-photo'},
+  {label:'美食特写',id:'food-closeup'},
+  {label:'产品静物',id:'product-stilllife'},
+  {label:'电影剧照',id:'film-still'},
+  {label:'国风水墨',id:'ink-chinese'},
+  {label:'赛博朋克',id:'cyberpunk'},
+  {label:'吉卜力治愈',id:'ghibli-healing'},
+  {label:'3D盲盒',id:'3d-blindbox-toy'}
+];
+const OUT_TITLES = {cn:'中文提示词',neg:'负向提示词',en:'英文关键词',param:'参数建议',drift:'防漂移清单 + 即梦技巧'};
+
+// ---- element refs ----
+const styleSelect=document.getElementById('f-style');
+const subjectInput=document.getElementById('f-subject');
+const compSelect=document.getElementById('f-comp');
+const lensSelect=document.getElementById('f-lens');
+const lightSelect=document.getElementById('f-light');
+const colorSelect=document.getElementById('f-color');
+const moodInput=document.getElementById('f-mood');
+const aspectSelect=document.getElementById('f-aspect');
+const negativesInput=document.getElementById('f-neg');
+let LAST={cn:'',neg:'',en:'',param:'',drift:''};
+
+// ---- helpers ----
+function fillDimSelect(sel,arr){arr.forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.label_cn;sel.appendChild(o);});}
+function phrase(arr,id){const o=arr.find(x=>x.id===id);return o?o.phrase_cn:'';}
+function fillTemplate(tpl,vars){return tpl.replace(/\{(\w+)\}/g,(m,k)=>(vars[k]!==undefined&&vars[k]!=='')?vars[k]:m);}
+function setOut(k,v){document.getElementById('out-'+k).textContent=v;}
+
+// ---- build selects ----
+function buildSelects(){
+  STYLES.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name_cn+' · '+s.category;styleSelect.appendChild(o);});
+  fillDimSelect(compSelect,DIM.composition);
+  fillDimSelect(lensSelect,DIM.lens);
+  fillDimSelect(lightSelect,DIM.lighting);
+  fillDimSelect(colorSelect,DIM.color);
+  ASPECTS.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;aspectSelect.appendChild(o);});
+}
+
+// ---- build preset buttons ----
+function buildPresets(){
+  const wrap=document.getElementById('presets');
+  PRESETS.forEach(p=>{
+    const b=document.createElement('button');
+    b.type='button';b.className='preset-btn';b.textContent=p.label;b.dataset.id=p.id;
+    b.addEventListener('click',()=>{
+      applyStyle(p.id,{clearSubject:true});
+      document.querySelectorAll('.preset-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      generate();
+    });
+    wrap.appendChild(b);
+  });
+}
+
+// ---- apply a style: fill subject example, aspect, negatives, dim defaults ----
+function applyStyle(sid,opts){
+  const style=STYLES.find(s=>s.id===sid);
+  if(!style) return;
+  styleSelect.value=sid;
+  const curSubj=subjectInput.value.trim();
+  const subjIsExample=STYLES.some(s=>s.default_subject_example===curSubj);
+  if(opts&&opts.clearSubject){subjectInput.value='';}
+  else if(!curSubj||subjIsExample){subjectInput.value=style.default_subject_example;}
+  aspectSelect.value=style.recommended_aspect;
+  const curNeg=negativesInput.value.trim();
+  const negIsDefault=STYLES.some(s=>s.negatives.join('、')===curNeg);
+  if(!curNeg||negIsDefault){negativesInput.value=style.negatives.join('、');}
+  const d=STYLE_DIM_DEFAULTS[sid]||{};
+  if(d.composition)compSelect.value=d.composition;
+  if(d.lens)lensSelect.value=d.lens;
+  if(d.lighting)lightSelect.value=d.lighting;
+  if(d.color)colorSelect.value=d.color;
+  moodInput.value='';
+}
+
+// ---- generate all 5 outputs ----
+function generate(){
+  const sid=styleSelect.value;
+  const style=STYLES.find(s=>s.id===sid);
+  if(!style) return;
+  const subject=subjectInput.value.trim()?subjectInput.value.trim():style.default_subject_example;
+  const compId=compSelect.value, lensId=lensSelect.value, lightId=lightSelect.value, colorId=colorSelect.value;
+  const composition=phrase(DIM.composition,compId);
+  const lens=phrase(DIM.lens,lensId);
+  const lighting=phrase(DIM.lighting,lightId);
+  const color=phrase(DIM.color,colorId);
+  const mood=moodInput.value.trim()?moodInput.value.trim():(STYLE_MOOD[style.id]||'自然真实的氛围');
+  const aspect=aspectSelect.value;
+
+  // 1 中文提示词
+  const cn=fillTemplate(style.prompt_template_cn,{subject:subject,composition:composition,lens:lens,lighting:lighting,color:color,mood:mood});
+
+  // 2 负向提示词 (style negatives already in box + universal, dedup)
+  const negArr=negativesInput.value.split(/[\n、,，]/).map(s=>s.trim()).filter(Boolean);
+  const merged=[...new Set([...negArr,...ANTI.universal_negatives])];
+  const neg=merged.join('、');
+
+  // 3 英文关键词
+  const enKW=[...style.keywords_en];
+  if(DIM_EN.composition[compId])enKW.push(DIM_EN.composition[compId]);
+  if(DIM_EN.lens[lensId])enKW.push(DIM_EN.lens[lensId]);
+  if(DIM_EN.lighting[lightId])enKW.push(DIM_EN.lighting[lightId]);
+  if(DIM_EN.color[colorId])enKW.push(DIM_EN.color[colorId]);
+  enKW.push('aspect ratio '+aspect.replace(':',' to '));
+  const en=[...new Set(enKW)].join(', ');
+
+  // 4 参数建议
+  const tipIdx=[0,2,4,7];
+  const tips=tipIdx.map(i=>PLATFORM.platform_tips[i]).filter(Boolean);
+  const param='比例：'+aspect+'\n'+tips.map(t=>'• '+t).join('\n');
+
+  // 5 防漂移清单 + 即梦技巧
+  const driftLines=style.drift_risks.map(d=>'['+d.severity+'] '+d.risk+'\n   → '+d.fix);
+  const rules=[
+    '① 即梦吃中文自然语言，写成一整段描述，别堆冲突风格词',
+    '② 一张图只锁一个主风格',
+    '③ 手 / 脚 / 文字易崩，用负向词 + 重抽',
+    '④ 主体要具体（谁 / 穿什么 / 在哪 / 做什么）',
+    '⑤ 负向词放"排除"框',
+    '⑥ 抽 4–8 张挑最稳的'
+  ];
+  const drift=driftLines.join('\n')+'\n\n—— 即梦通用技巧 ——\n'+rules.join('\n');
+
+  setOut('cn',cn);setOut('neg',neg);setOut('en',en);setOut('param',param);setOut('drift',drift);
+  LAST={cn:cn,neg:neg,en:en,param:param,drift:drift};
+}
+
+// ---- copy with file:// fallback ----
+function flash(btn){
+  if(!btn)return;
+  if(btn.dataset.orig===undefined)btn.dataset.orig=btn.textContent;
+  btn.textContent='已复制';
+  btn.classList.add('copied');
+  clearTimeout(btn._t);
+  btn._t=setTimeout(()=>{btn.textContent=btn.dataset.orig;btn.classList.remove('copied');},1200);
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.top='-1000px';ta.style.left='0';
+  ta.setAttribute('readonly','');
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+}
+function copyText(text,btn){
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>flash(btn)).catch(()=>{fallbackCopy(text);flash(btn);});
+  }else{
+    fallbackCopy(text);flash(btn);
+  }
+}
+
+// ---- wire up ----
+function init(){
+  buildSelects();
+  buildPresets();
+  applyStyle('portrait-photo');
+  generate();
+
+  styleSelect.addEventListener('change',()=>{
+    applyStyle(styleSelect.value);
+    document.querySelectorAll('.preset-btn').forEach(x=>x.classList.remove('active'));
+    generate();
+  });
+  [subjectInput,moodInput,negativesInput].forEach(el=>el.addEventListener('input',generate));
+  [compSelect,lensSelect,lightSelect,colorSelect,aspectSelect].forEach(el=>el.addEventListener('change',generate));
+  document.getElementById('genBtn').addEventListener('click',generate);
+
+  document.querySelectorAll('.copy-btn').forEach(b=>{
+    b.addEventListener('click',()=>copyText(LAST[b.dataset.k]||'',b));
+  });
+  document.getElementById('copyAll').addEventListener('click',function(){
+    const text=['cn','neg','en','param','drift'].map(k=>'【'+OUT_TITLES[k]+'】\n'+(LAST[k]||'')).join('\n\n');
+    copyText(text,this);
+  });
+}
+init();
+</script>
+</body>
+</html>

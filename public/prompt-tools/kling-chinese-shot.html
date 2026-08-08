@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>可灵 中文运镜 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center}
+.header h1{font-size:26px;font-weight:700;letter-spacing:-.4px}
+.header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0}
+.btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
+.card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>可灵 中文运镜 prompt</h1><p class="sub">可灵/海螺 · 中文运镜词 · 时长</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="subj">主体与动作</label><textarea id="subj" rows="3" placeholder="主体在前、动作在后,用逗号分隔。例:一位穿白衬衫的女孩,撑透明雨伞在雨中缓步走"></textarea></div>
+<div class="field"><label for="move">运镜</label><select id="move"><option>镜头推进</option><option>镜头拉远</option><option>水平摇移</option><option>俯仰</option><option>环绕拍摄</option><option>航拍</option><option>跟随跟拍</option><option>手持晃动</option><option>固定机位</option></select></div>
+<div class="field"><label for="light">光线</label><select id="light"><option>黄金时刻</option><option>蓝调时刻</option><option>正午</option><option>霓虹夜景</option><option>柔光</option></select></div>
+<div class="field"><label for="dur">时长</label><select id="dur"><option>5s</option><option>10s</option></select></div>
+<div class="field"><label for="mood">氛围</label><input id="mood" type="text" placeholder="例:安静、诗意、略带孤独"></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">中文 Prompt</span><button class="cbtn" data-copy="prompt">复制</button></div><div class="card-bd" id="out-prompt"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>运镜只选一个 · 主体动作单一明确 · 写清服装与材质以减少逐帧漂移</p></div></footer>
+<script>
+const KB={
+move:{
+'镜头推进':'由远景缓慢过渡到特写,聚焦主体细节',
+'镜头拉远':'由近景缓慢拉远,展现主体所处的环境空间',
+'水平摇移':'自左向右水平平移,展现全景纵深',
+'俯仰':'由俯视到仰视的垂直运动,塑造主体气势',
+'环绕拍摄':'环绕主体缓慢旋转,360度展示立体感',
+'航拍':'高空俯瞰,镜头缓慢上升或前行',
+'跟随跟拍':'跟随主体运动,保持稳定距离的移动跟拍',
+'手持晃动':'轻微晃动,营造临场真实感',
+'固定机位':'镜头静止,主体在画面内运动'
+},
+light:{
+'黄金时刻':'黄金时刻柔和侧逆光,暖金色光晕',
+'蓝调时刻':'蓝调时刻冷色天光,静谧蓝调氛围',
+'正午':'正午顶光,光线硬朗,高对比度',
+'霓虹夜景':'霓虹夜景多彩人造光源,都市质感',
+'柔光':'柔光散射,均匀无强烈阴影,通透自然'
+}
+};
+function build(){
+const raw=(document.getElementById('subj').value||'').trim();
+const move=document.getElementById('move').value;
+const light=document.getElementById('light').value;
+const dur=document.getElementById('dur').value;
+const mood=(document.getElementById('mood').value||'').trim();
+let subj='',action='';
+const parts=raw.split(/[，,\n]/);
+if(parts.length>=2){subj=parts[0].trim();action=parts.slice(1).join(',').trim();}else{subj=raw;}
+const moveDesc=KB.move[move]||'';
+const lightDesc=KB.light[light]||'';
+let p='【主体】'+(subj||'（请填写主体）');
+p+=',\n【动作】'+(action||'（请填写动作）');
+p+=',\n【运镜】'+move+','+moveDesc;
+p+=',\n【光线】'+lightDesc;
+if(mood){p+=',\n【氛围】'+mood;}
+p+=',\n时长['+dur+'],电影质感,高码率';
+p+='\n\n【防漂移小贴士】运镜只选一个、主体动作单一明确、写清服装与材质减少逐帧漂移、避免文字特效。';
+return p;
+}
+function generate(){document.getElementById('out-prompt').textContent=build();}
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function copyAll(){copyText(document.getElementById('out-prompt').textContent,document.getElementById('btn-copy-all'))}
+function init(){
+const ids=['subj','move','light','dur','mood'];
+ids.forEach(id=>{const el=document.getElementById(id);el.addEventListener('input',generate);el.addEventListener('change',generate);});
+document.getElementById('btn-gen').addEventListener('click',generate);
+document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+document.querySelectorAll('.cbtn').forEach(b=>{b.addEventListener('click',function(){const k=this.getAttribute('data-copy');copyText(document.getElementById('out-'+k).textContent,this);});});
+generate();
+}
+init();
+</script>
+</body>
+</html>

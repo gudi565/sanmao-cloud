@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>油画创作参考图 prompt · MJ/Flux</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>油画创作参考图 prompt</h1><p class="sub">MJ / Flux · 大师风格 · 给创作做参考</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field">
+    <label for="subject">主题与构图</label>
+    <textarea id="subject" rows="3" placeholder="a lone figure cradling a sapling of fire, three-quarter view, low horizon"></textarea>
+  </div>
+  <div class="field">
+    <label for="palette">色调方案</label>
+    <input id="palette" type="text" placeholder="deep umber ground, vermilion, gilt gold">
+  </div>
+  <div class="field field-row">
+    <div>
+      <label for="master">参照大师</label>
+      <select id="master">
+        <option value="sargent">萨金特 Sargent</option>
+        <option value="zorn">佐恩 Zorn</option>
+        <option value="freud">卢西安·弗洛伊德 Freud</option>
+        <option value="bacon">培根 Bacon</option>
+        <option value="wyeth">怀斯 Wyeth</option>
+        <option value="derain">安德鲁·德兰 Derain</option>
+      </select>
+    </div>
+    <div>
+      <label for="scale">尺幅感</label>
+      <select id="scale">
+        <option value="portrait">小幅肖像</option>
+        <option value="interior" selected>中型室内</option>
+        <option value="grand">大型组画</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label for="ar">比例</label>
+    <select id="ar">
+      <option value="1:1">1:1 方形</option>
+      <option value="3:4" selected>3:4 竖</option>
+      <option value="4:3">4:3 横</option>
+      <option value="2:3">2:3 竖</option>
+      <option value="3:2">3:2 横</option>
+      <option value="16:9">16:9 宽屏</option>
+    </select>
+  </div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">MJ Prompt</span><button class="cbtn" data-copy="mj">复制</button></div>
+    <div class="card-bd" id="out-mj"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">Flux 版 + 负向</span><button class="cbtn" data-copy="flux">复制</button></div>
+    <div class="card-bd" id="out-flux"></div>
+  </div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>参考图用途——多跑、拼贴取舍,别直接当成品;指明「厚涂肌理 impasto」防数字光滑感。</p></div></footer>
+<script>
+var MASTER_KB={
+  sargent:{en:'John Singer Sargent, luminous flesh tones, fluid painterly brushwork, bravura strokes, refined elegance, confident draughtsmanship',flux:'in the manner of John Singer Sargent, with luminous skin tones and fluid bravura brushwork'},
+  zorn:{en:'Anders Zorn, limited Zorn palette, confident wet-on-wet brushwork, dappled water light, earthy warmth',flux:'in the manner of Anders Zorn, using a limited palette with confident wet-on-wet brushwork and dappled light'},
+  freud:{en:'Lucian Freud, thick coarse impasto, raw weighted flesh, intense scrutiny, bristle marks, somatic heaviness',flux:'in the manner of Lucian Freud, with thick coarse impasto and raw weighted flesh under intense scrutiny'},
+  bacon:{en:'Francis Bacon, distorted convulsing figures, haunting voids, smearing and dragging strokes, visceral anxiety',flux:'in the manner of Francis Bacon, with distorted figures and haunting smearing strokes in a dark void'},
+  wyeth:{en:'Andrew Wyeth, tempera-like precision, muted earth tones, stark realist detail, melancholic rural atmosphere',flux:'in the manner of Andrew Wyeth, with tempera-like precision, muted earth tones and stark realism'},
+  derain:{en:'Andre Derain, Fauvist bold non-naturalistic color, expressive broken brushwork, vivid chromatic intensity',flux:'in the manner of Andre Derain, with Fauvist bold color and expressive broken brushwork'}
+};
+var SCALE_KB={
+  portrait:{en:'intimate half-length portrait, close focus on face and hands, soft directional light'},
+  interior:{en:'mid-scale interior scene, figures within a room, natural window light, balanced composition'},
+  grand:{en:'monumental multi-figure tableau, dramatic chiaroscuro, grand stage-like composition'}
+};
+function val(id){return document.getElementById(id).value}
+function text(id,v){document.getElementById(id).textContent=v}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function buildMJ(subject,palette,master,scale,ar){
+  var m=MASTER_KB[master],s=SCALE_KB[scale];
+  return 'oil painting, '+subject+', '+palette+', in the style of '+m.en+', '+s.en+', visible brushwork, impasto texture, oil on canvas, museum quality --ar '+ar+' --style raw --no frame,signature,text';
+}
+function buildFlux(subject,palette,master,scale){
+  var m=MASTER_KB[master],s=SCALE_KB[scale];
+  return 'An oil painting of '+subject+'. Palette: '+palette+'. Painted '+m.flux+'. '+cap(s.en)+'. Rich visible brushwork with thick impasto texture, oil on canvas, museum-quality reference image.\n\nNegative prompt:\nphotorealistic, digital, smooth, airbrushed, plastic, 3d render, watermark';
+}
+function generate(){
+  var subject=val('subject').trim()||'a solitary figure cradling a sapling of fire, three-quarter view';
+  var palette=val('palette').trim()||'deep umber ground, vermilion, gilt gold';
+  var master=val('master'),scale=val('scale'),ar=val('ar');
+  text('out-mj',buildMJ(subject,palette,master,scale,ar));
+  text('out-flux',buildFlux(subject,palette,master,scale));
+}
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){
+  var o=btn.textContent;
+  var d=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(function(){fallbackCopy(text);d()})}else{fallbackCopy(text);d()}
+}
+function copyAll(){copyText(['【MJ Prompt】','',document.getElementById('out-mj').textContent,'','【Flux 版 + 负向】','',document.getElementById('out-flux').textContent].join('\n'),document.getElementById('btn-copy-all'))}
+function init(){
+  ['subject','palette','master','scale','ar'].forEach(function(id){
+    var el=document.getElementById(id);
+    el.addEventListener('input',generate);
+    el.addEventListener('change',generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(b){
+    b.addEventListener('click',function(){copyText(document.getElementById('out-'+b.dataset.copy).textContent,b)});
+  });
+  generate();
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

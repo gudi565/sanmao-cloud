@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品 / 品牌命名 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>产品 / 品牌命名 prompt</h1><p class="sub">为任意品类生成 10 个带释义、调性理由与可注册性分析的品牌名</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="pinlei">品类 / 产品</label><input id="pinlei" type="text" placeholder="智能水杯" value="智能水杯"></div>
+<div class="field"><label for="diaoxing">调性</label><select id="diaoxing">
+<option>科技未来</option>
+<option>文艺诗意</option>
+<option>亲民接地气</option>
+<option>奢华高端</option>
+<option>国风古韵</option>
+<option>活泼年轻</option>
+</select></div>
+<div class="field"><label for="renqun">目标人群</label><input id="renqun" type="text" placeholder="25-40岁都市白领" value="25-40岁都市白领"></div>
+<div class="field"><label for="yuyan">命名语言</label><select id="yuyan">
+<option>中文2-3字</option>
+<option>英文</option>
+<option>中英双语</option>
+</select></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">System Prompt + 输出模板</span><button class="cbtn" data-copy="prompt">复制</button></div><div class="card-bd" id="out-prompt"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>商标风险仅为预估,正式注册前请以国家知识产权局商标局查询结果为准。</p></div></footer>
+<script>
+function build(){
+  var pinlei=document.getElementById('pinlei').value.trim()||'智能水杯';
+  var diaoxing=document.getElementById('diaoxing').value;
+  var renqun=document.getElementById('renqun').value.trim()||'目标消费者';
+  var yuyan=document.getElementById('yuyan').value;
+
+  var langLine,colName,nameHint;
+  if(yuyan==='中文2-3字'){
+    langLine='中文,长度 2-3 字';
+    colName='英文意译 / 拼音';
+    nameHint='名字须为规范的中文词,2-3 字,避免生僻字。';
+  }else if(yuyan==='英文'){
+    langLine='英文(允许造词,但需符合英语构词法,易读易拼)';
+    colName='中文意译 / 词源';
+    nameHint='名字须为合法英文(单词、合成词或规范变体),易读易拼,符合英语母语者直觉。';
+  }else{
+    langLine='中英双语(中文名 + 对应英文名)';
+    colName='中英对照 / 互译说明';
+    nameHint='每个候选须同时给出中文名(2-3 字)与对应英文名,二者在含义或音韵上需有内在关联。';
+  }
+
+  var toneMap={
+    '科技未来':'简洁、未来感,可带极客气质,宜用清亮辅音与开放元音',
+    '文艺诗意':'意象绵长、有留白,宜从自然、时间、光影等隐喻取词',
+    '亲民接地气':'口语化、温暖、好记,宜用生活化动词与常见字',
+    '奢华高端':'克制、稀缺感,宜短词、宜留白,避免堆砌形容词',
+    '国风古韵':'从诗词、典故、传统器物中提炼,字形雅正',
+    '活泼年轻':'节奏跳跃、有趣、可带网感,允许适度造词与谐趣'
+  };
+  var toneHint=toneMap[diaoxing]||'';
+
+  var p='# 角色\n'
+    +'你是一名资深品牌命名专家,精通语义学、商标法基础与跨文化语言学,曾为消费电子、新消费、互联网、文创等多个行业提供命名咨询。\n\n'
+    +'# 任务\n'
+    +'请为以下产品/品牌生成 10 个候选名字:\n'
+    +'- 品类:'+pinlei+'\n'
+    +'- 目标调性:'+diaoxing+'('+toneHint+')\n'
+    +'- 目标人群:'+renqun+'\n'
+    +'- 命名语言:'+langLine+'\n\n'
+    +'# 输出格式(必须使用如下 Markdown 表格)\n'
+    +'| 序号 | 名字 | 释义 | 调性匹配理由 | 可注册性思路 | '+colName+' |\n'
+    +'|------|------|------|--------------|--------------|-------------|\n\n'
+    +'# 每个名字必须包含\n'
+    +'1. 释义 —— 字面义、引申义,以及与「'+pinlei+'」品类或使用场景的关联点。\n'
+    +'2. 调性匹配理由 —— 从音韵、字形、意象或文化联想角度,说明它如何呼应「'+diaoxing+'」调性,落到该名字的具体字/音上,不要复述这四个字了事。\n'
+    +'3. 可注册性思路 —— 判断是否为常见词/通用词(显著性弱);结合品类预估商标冲突风险(高/中/低);若风险高,给出可注册的微调变体(加前后缀、换近义字等)。\n'
+    +'4. '+colName+' —— 给出对应英文意译/拼音/中英对照,用于跨语言与海外场景。\n\n'
+    +'# 硬约束(必须遵守)\n'
+    +'- 易读、易记、易传播;'+nameHint+'\n'
+    +'- 避开任何负面歧义、不雅谐音、文化禁忌与政治敏感联想。\n'
+    +'- 避开知名商标(与知名品牌高度相似者必须替换)。\n'
+    +'- 10 个名字必须思路差异化(音韵派、意象派、功能派、造词派等交替),不要全是同一套路。\n'
+    +'- 每个名字都必须给出完整释义与理由,禁止只列名字不解释。\n\n'
+    +'# 防漂移提示\n'
+    +'- 不要生造字典里不存在的拗口组合词。\n'
+    +'- 不要与知名品牌撞名或高度近似。\n'
+    +'- 调性理由要落到该名字的具体字/音/形上,不要空泛套话。\n'
+    +'- 商标风险要如实评估,风险高就标注并给变体,不要一律写「低」敷衍。';
+  return p;
+}
+
+function generate(){
+  document.getElementById('out-prompt').textContent=build();
+}
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(function(){fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function init(){
+  var ids=['pinlei','diaoxing','renqun','yuyan'];
+  ids.forEach(function(id){
+    var el=document.getElementById(id);
+    el.addEventListener('change',generate);
+    el.addEventListener('input',generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',function(){
+    var parts=[];
+    document.querySelectorAll('.card-bd').forEach(function(el){parts.push(el.textContent)});
+    copyText(parts.join('\n\n'),document.getElementById('btn-copy-all'));
+  });
+  var cbtns=document.querySelectorAll('.cbtn');
+  cbtns.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var key=btn.getAttribute('data-copy');
+      var el=document.getElementById('out-'+key);
+      copyText(el.textContent,btn);
+    });
+  });
+  generate();
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

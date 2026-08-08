@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二次元 / 动漫头像 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center}
+.header h1{font-size:26px;font-weight:700;letter-spacing:-.4px}
+.header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field textarea{resize:vertical;min-height:84px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0}
+.btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
+.card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.hint{font-size:12px;color:var(--t3);margin-top:10px;padding-top:10px;border-top:1px dashed var(--bl);line-height:1.55}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>二次元 / 动漫头像 prompt</h1><p class="sub">NovelAI / Flux 动漫 / 即梦 — Danbooru 标签正向 + 通用负向，防手指与左右眼崩坏</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field">
+<label for="f-desc">角色描述</label>
+<textarea id="f-desc" placeholder="性别 / 年龄 / 发色 / 瞳色 / 服装 / 配饰&#10;例：少女，银色长发，红色瞳，水手服，颈间红丝带"></textarea>
+</div>
+<div class="field">
+<label for="f-style">风格</label>
+<select id="f-style">
+<option>日系少女</option>
+<option>热血少年</option>
+<option>赛博朋克</option>
+<option>水彩治愈</option>
+<option>厚涂油画</option>
+<option>京都动画风</option>
+<option>国风二次元</option>
+</select>
+</div>
+<div class="field">
+<label for="f-comp">构图</label>
+<select id="f-comp">
+<option>头像 face</option>
+<option>半身 upper body</option>
+<option>全身 full body</option>
+</select>
+</div>
+<div class="field">
+<label for="f-ratio">比例</label>
+<select id="f-ratio">
+<option>1:1</option>
+<option>3:4</option>
+<option>9:16</option>
+</select>
+</div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card">
+<div class="card-hd"><span class="card-tt">正向 prompt</span><button class="cbtn" data-copy="pos">复制</button></div>
+<div class="card-bd" id="out-pos"></div>
+</div>
+<div class="card">
+<div class="card-hd"><span class="card-tt">负向 prompt</span><button class="cbtn" data-copy="neg">复制</button></div>
+<div class="card-bd" id="out-neg"></div>
+</div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>多角色极易崩坏，强烈建议单角色出图；若左右眼不对称或手指异常，加大负向权重或局部重绘。</p></div></footer>
+<script>
+var STYLE={
+'日系少女':{tags:'anime girl, soft shading, vibrant colors, moe style, kawaii, clean lines'},
+'热血少年':{tags:'shounen anime style, bold outlines, dynamic shading, sharp eyes, intense expression'},
+'赛博朋克':{tags:'cyberpunk style, neon lights, futuristic city, holographic accents, high contrast, techwear outfit'},
+'水彩治愈':{tags:'watercolor painting, soft pastel colors, dreamy atmosphere, healing mood, loose brushwork, paper texture'},
+'厚涂油画':{tags:'impasto oil painting, rich textures, classical rim lighting, detailed brushwork, painterly'},
+'京都动画风':{tags:'Kyoto Animation style, highly detailed eyes, soft gradient lighting, cinematic, pastel palette, lens flare'},
+'国风二次元':{tags:'Chinese anime style, hanfu, traditional oriental patterns, ink wash accents, flowing sleeves, elegant'}
+};
+var COMP={
+'头像 face':'close-up portrait, face focus, headshot, looking at viewer',
+'半身 upper body':'upper body portrait, half body, looking at viewer',
+'全身 full body':'full body, standing, head to toe, full body shot'
+};
+var RATIO_HINT={
+'1:1':'正方形 1:1（头像/方图）',
+'3:4':'竖图 3:4（半身/全身推荐）',
+'9:16':'竖屏 9:16（手机壁纸）'
+};
+
+function detectGender(desc){
+var d=desc.toLowerCase();
+if(/男|boy|male|少年|哥哥|男生|正太|帅哥|hero/.test(d)){return '1boy, solo';}
+if(/女|girl|female|少女|姐姐|女生|萝莉|萌妹|lady/.test(d)){return '1girl, solo';}
+return '1girl, solo';
+}
+
+function cleanDesc(s){
+s=(s||'').trim();
+s=s.replace(/\s*[\n，,]+\s*/g,', ').replace(/,+\s*,+/g,', ').replace(/^,\s*|,\s*$/g,'').trim();
+return s;
+}
+
+function buildPositive(desc,style,comp,ratio){
+var feats=cleanDesc(desc)||'anime character';
+var g=detectGender(desc);
+var st=STYLE[style].tags;
+var cp=COMP[comp];
+var p='masterpiece, best quality, very aesthetic, ultra-detailed, highres, '+g+', '+feats+', '+st+', '+cp+', detailed eyes, symmetrical eyes, beautiful lighting, depth of field, finely detailed';
+p+='\n\n— 建议出图比例 '+RATIO_HINT[ratio]+' —';
+return p;
+}
+
+function buildNegative(comp){
+var n='worst quality, low quality, normal quality, bad anatomy, bad hands, extra digits, fewer digits, missing fingers, extra fingers, mutated hands, deformed hands, poorly drawn hands, asymmetrical eyes, differently colored eyes, mutated, disfigured, bad face, watermark, signature, text, logo, username, jpeg artifacts, blurry, lowres, duplicate, morbid';
+if(comp==='头像 face'){n+=', out of frame, cropped face, hat, obscured face';}
+if(comp==='半身 upper body'){n+=', cropped head, out of frame';}
+if(comp==='全身 full body'){n+=', cropped, out of frame, cut off, missing legs';}
+return n;
+}
+
+function generate(){
+var desc=document.getElementById('f-desc').value;
+var style=document.getElementById('f-style').value;
+var comp=document.getElementById('f-comp').value;
+var ratio=document.getElementById('f-ratio').value;
+document.getElementById('out-pos').textContent=buildPositive(desc,style,comp,ratio);
+document.getElementById('out-neg').textContent=buildNegative(comp);
+}
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(function(){fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function init(){
+var ids=['f-desc','f-style','f-comp','f-ratio'];
+for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el){el.addEventListener('input',generate);el.addEventListener('change',generate);}}
+var bg=document.getElementById('btn-gen');if(bg){bg.addEventListener('click',function(e){e.preventDefault();generate();});}
+var bca=document.getElementById('btn-copy-all');if(bca){bca.addEventListener('click',function(){var pos=document.getElementById('out-pos').textContent;var neg=document.getElementById('out-neg').textContent;var all='【正向 prompt】\n'+pos+'\n\n【负向 prompt】\n'+neg;copyText(all,bca);});}
+var cbs=document.querySelectorAll('.cbtn');
+for(var j=0;j<cbs.length;j++){(function(btn){btn.addEventListener('click',function(){var key=btn.getAttribute('data-copy');var target=document.getElementById('out-'+key);if(target){copyText(target.textContent,btn);}});})(cbs[j]);}
+generate();
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>建筑 / 室内设计图 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>建筑 / 室内设计图 prompt</h1><p class="sub">建筑摄影 · 室内可视化 prompt 生成器 · 适用 SDXL / Midjourney 建筑模式</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="space">空间类型</label><select id="space">
+<option>客厅</option><option>卧室</option><option>办公空间</option><option>咖啡店</option><option>建筑外观</option><option>景观</option>
+</select></div>
+<div class="field"><label for="style">风格</label><select id="style">
+<option>极简 minimalist</option><option>侘寂 wabi-sabi</option><option>工业 industrial</option><option>北欧 Scandinavian</option><option>中古 mid-century</option><option>新中式</option>
+</select></div>
+<div class="field"><label for="material">主材质</label><input type="text" id="material" placeholder="如:微水泥+橡木+黄铜" value="微水泥+橡木+黄铜"></div>
+<div class="field"><label for="light">光线</label><select id="light">
+<option>自然光</option><option>黄金时刻</option><option>柔光箱</option><option>氛围灯</option>
+</select></div>
+<div class="field"><label for="lens">视角</label><select id="lens">
+<option>广角 16mm</option><option>人眼 35mm</option><option>轴测 axonometric</option><option>俯视</option>
+</select></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">Prompt · 正向提示词</span><button class="cbtn" data-copy="prompt">复制</button></div><div class="card-bd" id="out-prompt"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">Negative · 负向提示词</span><button class="cbtn" data-copy="neg">复制</button></div><div class="card-bd" id="out-neg"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>透视畸变和家具漂浮是建筑出图最常见的漂移点 —— 已自动写入 corrected perspective,务必保留。</p></div></footer>
+<script>
+const SPACE={'客厅':'living room','卧室':'bedroom','办公空间':'modern office space','咖啡店':'coffee shop interior','建筑外观':'building exterior architecture','景观':'landscape architecture'};
+const STYLE={'极简 minimalist':'minimalist','侘寂 wabi-sabi':'wabi-sabi','工业 industrial':'industrial','北欧 Scandinavian':'Scandinavian','中古 mid-century':'mid-century modern','新中式':'new Chinese style'};
+const LIGHT={'自然光':'natural daylight','黄金时刻':'golden hour lighting','柔光箱':'softbox studio lighting','氛围灯':'ambient warm lighting'};
+const LENS={'广角 16mm':'16mm wide-angle lens','人眼 35mm':'35mm prime lens','轴测 axonometric':'axonometric projection','俯视':'top-down overhead view'};
+const MAT={'微水泥':'microcement','水泥':'cement','清水混凝土':'board-formed concrete','混凝土':'concrete','橡木':'oak wood','胡桃木':'walnut wood','松木':'pine wood','白蜡木':'ash wood','柚木':'teak wood','木材':'wood','木':'wood','木地板':'hardwood flooring','大理石':'marble','石材':'stone','洞石':'travertine','花岗岩':'granite','水磨石':'terrazzo','黄铜':'brass','紫铜':'copper','铜':'copper','钢':'steel','黑钢':'black steel','碳钢':'carbon steel','不锈钢':'stainless steel','玻璃':'glass','长虹玻璃':'fluted glass','皮革':'leather','布艺':'fabric','亚麻':'linen','棉':'cotton','天鹅绒':'velvet','羊毛':'wool','红砖':'red brick','砖':'brick','青砖':'grey brick','陶瓷':'ceramic','瓷砖':'ceramic tile','藤':'rattan','竹':'bamboo','麦秆':'straw','镜面':'mirror finish','石膏':'plaster','夯土':'rammed earth','炭黑木材':'charred wood'};
+function trMat(s){
+  const parts=s.split(/[+,，、\/\s]+/).filter(Boolean);
+  if(parts.length===0) return 'microcement, oak wood, brass';
+  return parts.map(function(p){return MAT[p]||p;}).join(' and ');
+}
+function generate(){
+  const space=SPACE[document.getElementById('space').value]||'living room';
+  const style=STYLE[document.getElementById('style').value]||'minimalist';
+  const matRaw=document.getElementById('material').value.trim()||'微水泥+橡木+黄铜';
+  const mat=trMat(matRaw);
+  const light=LIGHT[document.getElementById('light').value]||'natural daylight';
+  const lensRaw=document.getElementById('lens').value;
+  const lens=LENS[lensRaw]||'35mm prime lens';
+  const isAxo=lensRaw.indexOf('轴测')!==-1;
+  const isTop=lensRaw.indexOf('俯视')!==-1;
+  let correction,head,tag;
+  if(isAxo){
+    correction='precise geometric axonometric projection, no perspective distortion';
+    head='architectural visualization';
+    tag='professional architectural rendering';
+  }else if(isTop){
+    correction='flat top-down orthographic view, no perspective';
+    head='architectural visualization';
+    tag='professional architectural rendering';
+  }else{
+    correction='straight vertical lines, corrected perspective, two-point perspective';
+    head='architectural photography';
+    tag='professional interior photography';
+  }
+  const prompt=head+', '+space+', '+style+' style, '+mat+', '+light+', '+lens+', '+correction+', ultra detailed, 8k, '+tag+', magazine quality';
+  document.getElementById('out-prompt').textContent=prompt;
+  const neg='distorted perspective, curved lines, converging verticals, keystoning, furniture floating, objects not touching ground, plastic look, rendered feel, watermark, text, signature, logo, lowres, blurry, fisheye distortion, overexposed highlights, clipped shadows, cartoon, 3d game asset';
+  document.getElementById('out-neg').textContent=neg;
+}
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function init(){
+  ['space','style','material','light','lens'].forEach(function(id){
+    const el=document.getElementById(id);
+    el.addEventListener('change',generate);
+    el.addEventListener('input',generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',function(){
+    const all=[document.getElementById('out-prompt').textContent,document.getElementById('out-neg').textContent].join('\n\n');
+    copyText(all,this);
+  });
+  document.querySelectorAll('.cbtn').forEach(function(b){
+    b.addEventListener('click',function(){
+      const key=this.getAttribute('data-copy');
+      copyText(document.getElementById('out-'+key).textContent,this);
+    });
+  });
+  generate();
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

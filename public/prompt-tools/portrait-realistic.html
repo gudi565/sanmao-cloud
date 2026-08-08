@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>写实人像 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>写实人像 prompt</h1><p class="sub">Flux / SDXL · 正向 + 负向 + 权重</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field">
+    <label for="subject">人物描述</label>
+    <textarea id="subject" rows="3" placeholder="年龄/性别, 发型, 服饰, 表情&#10;如: 25岁女性, 长黑直发披肩, 白色丝绸衬衫, 温柔微笑"></textarea>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="light">光线</label>
+      <select id="light">
+        <option value="窗口柔光">窗口柔光</option>
+        <option value="伦勃朗光">伦勃朗光</option>
+        <option value="逆光发丝光">逆光发丝光</option>
+        <option value="影棚蝶形光">影棚蝶形光</option>
+        <option value="街灯">街灯</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="lens">镜头与景别</label>
+      <select id="lens">
+        <option value="85mm 特写">85mm 特写</option>
+        <option value="50mm 半身">50mm 半身</option>
+        <option value="135mm 头像">135mm 头像</option>
+        <option value="35mm 环境">35mm 环境</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label for="background">场景背景</label>
+    <input id="background" type="text" placeholder="如: 城市夜景虚化 / 纯色背景 / 咖啡馆暖光">
+  </div>
+  <div class="field">
+    <label for="ratio">比例</label>
+    <select id="ratio">
+      <option value="1:1">1:1</option>
+      <option value="4:5" selected>4:5</option>
+      <option value="2:3">2:3</option>
+    </select>
+  </div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">Positive · 正向</span><button class="cbtn" data-copy="positive">复制</button></div>
+    <div class="card-bd" id="out-positive"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">Negative · 负向</span><button class="cbtn" data-copy="negative">复制</button></div>
+    <div class="card-bd" id="out-negative"></div>
+  </div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>写实不翻车三件套:皮肤写 detailed skin pores 而非 perfect,眼睛朝向要明确,手部藏起或写清位置</p></div></footer>
+<script>
+const KB = {
+  light: {
+    '窗口柔光': 'soft window light',
+    '伦勃朗光': 'Rembrandt lighting',
+    '逆光发丝光': 'backlight rim light on hair',
+    '影棚蝶形光': 'studio butterfly lighting',
+    '街灯': 'streetlight glow'
+  },
+  lens: {
+    '85mm 特写': { mm: '85mm', aperture: 'f/1.4' },
+    '50mm 半身': { mm: '50mm', aperture: 'f/1.8' },
+    '135mm 头像': { mm: '135mm', aperture: 'f/2' },
+    '35mm 环境': { mm: '35mm', aperture: 'f/2.8' }
+  }
+};
+
+function normSubject(s){
+  if(!s) return '';
+  return s.replace(/[\n\r]+/g, ', ').replace(/\s*,\s*,\s*/g, ', ').replace(/^[\s,]+|[\s,]+$/g, '');
+}
+
+function buildPositive(s, lt, ln, bg, ar){
+  const lightEn = KB.light[lt] || 'soft natural light';
+  const lens = KB.lens[ln] || KB.lens['85mm 特写'];
+  const subject = normSubject(s) || '28-year-old woman, long brown hair, white silk blouse, gentle smile';
+  const background = (bg && bg.trim()) || 'neutral studio backdrop';
+  const prompt = subject + ', looking at viewer, ' + lightEn + ', shot on ' + lens.mm + ' ' + lens.aperture + ', shallow depth of field, detailed skin texture, visible skin pores, photorealistic, ' + background;
+  const weight = '权重提示: (eyes:1.2) · 比例 --ar ' + ar;
+  return prompt + '\n\n' + weight;
+}
+
+function buildNegative(){
+  const neg = 'extra fingers, deformed hands, mutated, bad anatomy, cross-eyed, asymmetrical eyes, blurry, lowres, plastic skin, watermark, text, signature';
+  const tip = '提示: 写清眼睛朝向; 手部藏起或明确位置; 皮肤写 "detailed skin pores" 而非 "perfect"';
+  return neg + '\n\n' + tip;
+}
+
+function generate(){
+  const s = document.getElementById('subject').value;
+  const lt = document.getElementById('light').value;
+  const ln = document.getElementById('lens').value;
+  const bg = document.getElementById('background').value;
+  const ar = document.getElementById('ratio').value;
+  document.getElementById('out-positive').textContent = buildPositive(s, lt, ln, bg, ar);
+  document.getElementById('out-negative').textContent = buildNegative();
+}
+
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+
+function copyText(text,btn){
+  const o=btn.textContent;
+  const d=()=>{
+    btn.textContent='已复制 ✓';
+    btn.style.background='var(--accent)';
+    btn.style.color='#fff';
+    btn.style.borderColor='var(--accent)';
+    setTimeout(()=>{
+      btn.textContent=o;
+      btn.style.background='';
+      btn.style.color='';
+      btn.style.borderColor='';
+    },1500);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d();});
+  }else{
+    fallbackCopy(text);d();
+  }
+}
+
+function copyAll(){
+  copyText([
+    '【Positive · 正向】', document.getElementById('out-positive').textContent,
+    '',
+    '【Negative · 负向】', document.getElementById('out-negative').textContent
+  ].join('\n'), document.getElementById('btn-copy-all'));
+}
+
+function init(){
+  const ids = ['subject','light','lens','background','ratio'];
+  ids.forEach(function(id){
+    const el = document.getElementById(id);
+    el.addEventListener('change', generate);
+    el.addEventListener('input', generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click', generate);
+  document.getElementById('btn-copy-all').addEventListener('click', copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(b){
+    b.addEventListener('click', function(){
+      copyText(document.getElementById('out-' + b.dataset.copy).textContent, b);
+    });
+  });
+  generate();
+}
+
+init();
+</script>
+</body>
+</html>

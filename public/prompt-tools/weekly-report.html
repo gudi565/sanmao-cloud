@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>周报 prompt 生成器</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+.field textarea{resize:vertical;min-height:84px}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>周报 / 工作汇报 prompt</h1><p class="sub">把流水账变成结构化周报的 LLM 系统提示词</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="matters">本周事项（流水账，随便写）</label><textarea id="matters" placeholder="例：周一改了登录bug 周二开了三个会 周三跟设计对了一遍 周四上线了v2.1 周五写文档..."></textarea></div>
+<div class="field"><label for="results">成果 / 数据</label><input id="results" type="text" placeholder="例：完成3个需求,转化+12%,工时节省8h"></div>
+<div class="field"><label for="plan">下周计划</label><input id="plan" type="text" placeholder="例：推进支付重构,评审新方案,跟测上线"></div>
+<div class="field"><label for="tone">调性</label><select id="tone">
+<option value="简洁要点">简洁要点</option>
+<option value="详细完整">详细完整</option>
+<option value="邀功突出">邀功突出</option>
+<option value="复盘反思">复盘反思</option>
+</select></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">System Prompt + 模板</span><button class="cbtn" data-copy="SP">复制</button></div><div class="card-bd" id="out-SP"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>量化原数据会被严格保留——模型不会把你的 +12% 改成「大幅提升」，也不会凭空编数字。</p></div></footer>
+<script>
+function build(){
+  var matters = document.getElementById('matters').value.trim();
+  var results = document.getElementById('results').value.trim();
+  var plan = document.getElementById('plan').value.trim();
+  var tone = document.getElementById('tone').value;
+
+  var toneMap = {
+    '简洁要点': '## 调性：简洁要点\n全篇用短句要点，每条不超过一行，删除所有铺垫与过渡语；总字数控制在 300 字以内；不写任何寒暄、感谢、展望式收尾。',
+    '详细完整': '## 调性：详细完整\n每项进展补充必要背景、关联方与后续影响，可适度展开成 2–3 句；但要言之有物，不堆砌形容词；总字数 800 字以内。',
+    '邀功突出': '## 调性：邀功突出\n把成果与业务影响放在【本周进展】第一条和【关键数据】最前面，数据前置、价值贡献量化（节省工时 / 提升指标 / 降低风险 / 收入增量）；让上级三秒内看到产出。措辞自信但不浮夸，每一项产出都要能落到一个可被引用的数字或交付物上。',
+    '复盘反思': '## 调性：复盘反思\n在前四块之外，额外增加【复盘】板块：本周做对了什么（继续做）、做错了什么（停止做）、下周怎么改（开始做）；诚实但不自我否定，反思要落到具体动作。'
+  };
+  var toneDir = toneMap[tone];
+
+  var mattersBlock = matters ? matters : '（用户未填写，请输出一份空白模板并提示用户补充本周事项）';
+  var resultsBlock = results ? results : '（未提供，请从流水账中提炼，严禁编造任何数字；提炼不到就写"数据待补"）';
+  var planBlock = plan ? plan : '（未提供，请基于本周进展合理推断要跟进的事项，并在每条后标注[待确认]）';
+
+  var wordLimit = (tone === '简洁要点') ? '300 字以内' : '800 字以内';
+
+  var out = '';
+  out += '# 角色\n';
+  out += '你是一位资深项目经理（PM），擅长把散乱的流水账整理成结构清晰、重点突出、可被上级三秒读懂的工作周报。\n\n';
+
+  out += '# 任务\n';
+  out += '把下面这份【本周流水账】整理成一份高质量的周报，输出为纯 Markdown，不要任何额外解释或前后寒暄。\n\n';
+
+  out += '## 本周流水账（原始素材，不得删改原意）\n';
+  out += '<matters>\n' + mattersBlock + '\n</matters>\n\n';
+
+  out += '## 已知成果 / 数据（高可信，必须保留原数字）\n';
+  out += '<results>\n' + resultsBlock + '\n</results>\n\n';
+
+  out += '## 下周计划（原始素材）\n';
+  out += '<plan>\n' + planBlock + '\n</plan>\n\n';
+
+  out += '# 输出结构（严格按此顺序，缺素材的板块也要保留标题并标注"待补"）\n';
+  out += '1. **本周进展** —— 每条以动词开头（完成 / 推进 / 修复 / 对齐 / 上线 / 评审…），必须量化（完成 X 个 / 提升 Y% / 节省 Z 小时）；按重要度从高到低排序，最重要的事放第一条。\n';
+  out += '2. **关键数据** —— 单独一栏，集中呈现核心指标与对比基线；没有数据的条目不要硬凑，宁缺毋滥。\n';
+  out += '3. **问题与风险** —— 阻塞项、依赖项、潜在风险；每条写清：现象 + 影响 + 建议处理方式 / 责任人。\n';
+  out += '4. **下周计划** —— 动词开头、可执行、有明确产出物（不要写"持续推进"这种空话）。\n\n';
+
+  out += toneDir + '\n\n';
+
+  out += '# 硬约束（防漂移，逐条遵守）\n';
+  out += '- 量化优先：原文里出现的数字（百分比、个数、时长、金额）必须原样保留，绝不可把"转化 +12%"改写成"转化大幅提升"。\n';
+  out += '- 不编数据：原始素材里没有的数字，一律不得臆造；缺少数据时写"（数据待补）"，不要用"显著""明显""大幅"等模糊词替代。\n';
+  out += '- 删除空话：去掉"总而言之""综上所述""在领导的关心下""积极配合""稳步推进"等套话与水文。\n';
+  out += '- 按重要度排序：每个板块内部都按重要度从高到低排。\n';
+  out += '- 字数控制：' + wordLimit + '（含标题与标点）。\n';
+  out += '- 输出纯 Markdown，不要 ``` 包裹，不要任何"以下是您的周报"之类的开场白。\n\n';
+
+  out += '# 填空模板（仅供参考结构，最终内容请基于上方实际素材填充）\n';
+  out += '## 本周进展\n';
+  out += '- [动词] [事项] —— [量化结果 / 交付物]\n';
+  out +=('- [动词] [事项] —— [量化结果 / 交付物]\n\n');
+  out += '## 关键数据\n';
+  out +=('- [指标]：[数值]（对比 [基线]，[变化方向]）\n\n');
+  out += '## 问题与风险\n';
+  out +=('- [问题 / 风险] —— 影响：[x]；建议：[y]\n\n');
+  out += '## 下周计划\n';
+  out +=('- [动词] [事项] —— 产出物：[z]\n');
+  if (tone === '复盘反思') {
+    out += '\n## 复盘\n- 继续做：\n- 停止做：\n- 开始做：\n';
+  }
+  out += '\n---\n现在请基于上方【本周流水账】【成果/数据】【下周计划】，直接输出本周周报（纯 Markdown，' + wordLimit + '）。';
+
+  return out;
+}
+
+function generate(){
+  document.getElementById('out-SP').textContent = build();
+}
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(function(){fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function init(){
+  var ids = ['matters','results','plan','tone'];
+  for (var i=0;i<ids.length;i++){
+    var el = document.getElementById(ids[i]);
+    el.addEventListener('input', generate);
+    el.addEventListener('change', generate);
+  }
+  document.getElementById('btn-gen').addEventListener('click', function(e){e.preventDefault();generate();window.scrollTo({top:0,behavior:'smooth'});});
+  document.getElementById('btn-copy-all').addEventListener('click', function(){
+    copyText(document.getElementById('out-SP').textContent, this);
+  });
+  var cbs = document.querySelectorAll('.cbtn');
+  for (var j=0;j<cbs.length;j++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        var key = btn.getAttribute('data-copy');
+        copyText(document.getElementById('out-' + key).textContent, btn);
+      });
+    })(cbs[j]);
+  }
+  generate();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

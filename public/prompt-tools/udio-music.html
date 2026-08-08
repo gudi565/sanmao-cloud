@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Udio 音乐 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>Udio 音乐 prompt</h1><p class="sub">Udio 标签驱动 · 自动生成风格标签流与负向词</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="in-mood">主题 / 情绪</label><input type="text" id="in-mood" placeholder="melancholic, nostalgic"></div>
+<div class="field"><label for="in-genre">曲风</label><select id="in-genre">
+<option value="indie folk">indie folk</option>
+<option value="lo-fi hip-hop">lo-fi hip-hop</option>
+<option value="orchestral ambient">orchestral ambient</option>
+<option value="synthwave">synthwave</option>
+<option value="jazz-hop">jazz-hop</option>
+<option value="dream pop">dream pop</option>
+<option value="acoustic singer-songwriter">acoustic singer-songwriter</option>
+</select></div>
+<div class="field"><label for="in-inst">乐器</label><input type="text" id="in-inst" placeholder="acoustic guitar, cello, soft drums"></div>
+<div class="field"><label for="in-vocal">人声</label><select id="in-vocal">
+<option value="纯器乐">纯器乐</option>
+<option value="男声">男声</option>
+<option value="女声">女声</option>
+<option value="合唱">合唱</option>
+<option value="气声">气声</option>
+</select></div>
+<div class="field"><label for="in-dur">时长</label><select id="in-dur">
+<option value="<2min">&lt;2min</option>
+<option value="2-4min" selected>2-4min</option>
+<option value="full">full</option>
+</select></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">Udio 标签流</span><button class="cbtn" data-copy="tags">复制</button></div><div class="card-bd" id="out-tags"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">描述 prompt + 负向</span><button class="cbtn" data-copy="desc">复制</button></div><div class="card-bd" id="out-desc"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>Udio 重标签：锁定单一曲风家族，主风格标签不超过 5 个，用年代 / 质感锁风格，避免堆叠冲突标签。</p></div></footer>
+<script>
+const GENRE_MAP = {
+  'indie folk': { genre: 'indie folk', subgenre: 'folk', era: '2010s', texture: 'acoustic, warm' },
+  'lo-fi hip-hop': { genre: 'lo-fi hip-hop', subgenre: 'chillhop', era: '2010s', texture: 'tape, dusty' },
+  'orchestral ambient': { genre: 'orchestral ambient', subgenre: 'modern classical', era: '2000s', texture: 'lush, cinematic' },
+  'synthwave': { genre: 'synthwave', subgenre: 'retrowave', era: '80s', texture: 'analog, neon' },
+  'jazz-hop': { genre: 'jazz-hop', subgenre: 'nu jazz', era: '90s', texture: 'warm, sample-based' },
+  'dream pop': { genre: 'dream pop', subgenre: 'ethereal pop', era: '90s', texture: 'reverb-drenched, hazy' },
+  'acoustic singer-songwriter': { genre: 'singer-songwriter', subgenre: 'acoustic folk', era: '2010s', texture: 'intimate, dry' }
+};
+const VOCAL_MAP = {
+  '纯器乐': { tag: 'instrumental', desc: 'purely instrumental, no vocals' },
+  '男声': { tag: 'male vocals', desc: 'male lead vocal' },
+  '女声': { tag: 'female vocals', desc: 'female lead vocal' },
+  '合唱': { tag: 'choir, layered vocals', desc: 'layered choral vocals' },
+  '气声': { tag: 'breathy vocals', desc: 'breathy, intimate vocal delivery' }
+};
+const DUR_MAP = {
+  '<2min': { desc: 'concise short-form structure' },
+  '2-4min': { desc: 'standard verse-chorus structure' },
+  'full': { desc: 'extended full-length arrangement' }
+};
+
+function build(){
+  let mood = document.getElementById('in-mood').value.trim();
+  const genre = document.getElementById('in-genre').value;
+  let instruments = document.getElementById('in-inst').value.trim();
+  const vocal = document.getElementById('in-vocal').value;
+  const duration = document.getElementById('in-dur').value;
+
+  const g = GENRE_MAP[genre];
+  const v = VOCAL_MAP[vocal];
+  const d = DUR_MAP[duration];
+
+  // ---- Tag stream: front-load the most important style anchors ----
+  const tags = [];
+  tags.push(g.genre);
+  tags.push(g.subgenre);
+  if (mood) { mood.split(',').forEach(function(m){ var t = m.trim(); if (t) tags.push(t); }); }
+  if (instruments) { instruments.split(',').forEach(function(it){ var t = it.trim(); if (t) tags.push(t); }); }
+  if (v.tag) { v.tag.split(',').forEach(function(t){ t = t.trim(); if (t) tags.push(t); }); }
+  tags.push(g.era);
+  tags.push(g.texture);
+  tags.push('high quality');
+
+  const tagStream = tags.join(', ');
+
+  // ---- Description + negative ----
+  const moodPhrase = mood ? mood + ' ' : '';
+  const instPhrase = instruments ? ' featuring ' + instruments : '';
+  const vocalPhrase = v.desc ? ', ' + v.desc : '';
+  var desc = '';
+  desc += 'A ' + moodPhrase + g.genre + ' track' + instPhrase + vocalPhrase + '.\n';
+  desc += g.era + ' production with ' + g.texture + ' texture.\n';
+  desc += d.desc + '.\n';
+  desc += 'Front-loaded tags lock the genre family; keep instrumentation cohesive and avoid stacking conflicting styles.\n\n';
+  desc += 'Negative: poor production, off-key, distorted, generic';
+
+  document.getElementById('out-tags').textContent = tagStream;
+  document.getElementById('out-desc').textContent = desc;
+}
+
+function generate(){ build(); }
+
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function init(){
+  const fields = ['in-mood','in-genre','in-inst','in-vocal','in-dur'];
+  fields.forEach(function(id){
+    const el = document.getElementById(id);
+    el.addEventListener('change', generate);
+    el.addEventListener('input', generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click', generate);
+  document.getElementById('btn-copy-all').addEventListener('click', function(){
+    const tags = document.getElementById('out-tags').textContent;
+    const desc = document.getElementById('out-desc').textContent;
+    copyText('【Udio 标签流】\n' + tags + '\n\n【描述 prompt + 负向】\n' + desc, this);
+  });
+  const btns = document.querySelectorAll('.cbtn');
+  for (var i = 0; i < btns.length; i++) {
+    (function(btn){
+      btn.addEventListener('click', function(){
+        const key = btn.getAttribute('data-copy');
+        const text = document.getElementById('out-' + key).textContent;
+        copyText(text, btn);
+      });
+    })(btns[i]);
+  }
+  generate();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

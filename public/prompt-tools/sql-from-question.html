@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自然语言 → SQL prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+.field textarea{resize:vertical;min-height:90px}
+.field-check{display:flex;align-items:center;gap:6px}
+.field-check input{width:auto;margin:0}
+.field-check label{margin:0;font-weight:500;color:var(--text);font-size:13.5px}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>自然语言 → SQL prompt</h1><p class="sub">把表结构和业务问题压成一段可直接喂给 LLM 的 SQL 提示词</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="schema">表结构(粘贴 DDL 或字段说明)</label><textarea id="schema" placeholder="users(id BIGINT, name VARCHAR, created_at DATETIME);
+orders(id BIGINT, user_id BIGINT, amount DECIMAL, paid_at DATETIME);"></textarea></div>
+<div class="field"><label for="question">问题(自然语言)</label><textarea id="question" placeholder="查最近 30 天复购超 2 次的用户"></textarea></div>
+<div class="field"><label for="dialect">SQL 方言</label><select id="dialect"><option value="MySQL">MySQL</option><option value="PostgreSQL">PostgreSQL</option><option value="Hive">Hive</option><option value="Spark SQL">Spark SQL</option><option value="SQLite">SQLite</option></select></div>
+<div class="field field-check"><input type="checkbox" id="explain" checked><label for="explain">输出先讲思路,再给 SQL</label></div>
+<button class="btn-gen" id="btn-gen">生成提示词</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">System Prompt + 模板</span><button class="cbtn" data-copy="prompt">复制</button></div><div class="card-bd" id="out-prompt"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>先核对表结构再喂给 LLM —— 编造字段是 NL2SQL 翻车最常见的元凶。</p></div></footer>
+<script>
+function build(){
+  var rawSchema = document.getElementById('schema').value.trim();
+  var rawQuestion = document.getElementById('question').value.trim();
+  var dialect = document.getElementById('dialect').value;
+  var explain = document.getElementById('explain').checked;
+  var schema = rawSchema ? rawSchema : '(请在此粘贴 CREATE TABLE 语句,或字段说明,如:users(id, name, created_at))';
+  var question = rawQuestion ? rawQuestion : '(请在此描述你想查什么数据,例如:查最近 30 天复购超 2 次的用户)';
+  var fenceMap = {'MySQL':'mysql','PostgreSQL':'postgresql','Hive':'hive','Spark SQL':'sql','SQLite':'sqlite'};
+  var fence = fenceMap[dialect] || 'sql';
+
+  var out = '';
+  out += '# 角色\n';
+  out += '你是一位资深 DBA,精通 ' + dialect + ',擅长把业务问题翻译成高性能、可直接执行的 SQL。\n\n';
+  out += '# 任务\n';
+  out += '根据下面给出的【表结构】,把【问题】翻译成一条可立即在 ' + dialect + ' 上执行的 SQL。\n\n';
+  out += '# 表结构\n';
+  out += schema + '\n\n';
+  out += '# 问题\n';
+  out += question + '\n\n';
+  out += '# 硬性约束(必须遵守)\n';
+  out += '1. 只能使用上面【表结构】中已定义的表和字段,严禁编造任何表名或字段名;如果缺少必要字段,先指出缺什么,不要瞎猜。\n';
+  out += '2. 严禁 SELECT *,必须显式列出所需字段名。\n';
+  out += '3. 方言锁定为 ' + dialect + ':只能使用该方言支持的函数和语法,不得混用其他方言(如 MySQL 不要用 generate_series,PostgreSQL 不要用反引号)。\n';
+  out += '4. 时间范围必须写明起止条件(用 ' + dialect + ' 的日期函数);涉及分页必须显式 LIMIT/OFFSET。\n';
+  out += '5. 所有查询结果必须加 LIMIT(默认 100),防止全表扫描拖垮线上。\n';
+  out += '6. 在关键子句旁加行内注释(-- ...)说明意图。\n';
+  if(explain){
+    out += '7. 复杂查询(多表 JOIN、窗口函数、嵌套子查询)先简述思路,再给 SQL。\n';
+  }
+  out += '\n';
+  out += '# 输出格式\n';
+  if(explain){
+    out += '## [思路]\n';
+    out += '用 2-4 句说明:用到哪些表、如何关联、过滤与聚合逻辑、为什么这样写。\n\n';
+  }
+  out += '## [SQL]\n';
+  out += '```' + fence + '\n<可直接执行的 ' + dialect + ' 语句>\n```\n\n';
+  out += '## [优化建议]\n';
+  out += '给出索引、分区或 SQL 重写建议;若已足够优,简述一句原因即可。\n';
+  return out;
+}
+
+function generate(){
+  document.getElementById('out-prompt').textContent = build();
+}
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(function(){fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function init(){
+  var ids = ['schema','question','dialect','explain'];
+  for(var i=0;i<ids.length;i++){
+    var el = document.getElementById(ids[i]);
+    el.addEventListener('input', generate);
+    el.addEventListener('change', generate);
+  }
+  document.getElementById('btn-gen').addEventListener('click', generate);
+  document.getElementById('btn-copy-all').addEventListener('click', function(){
+    copyText(document.getElementById('out-prompt').textContent, this);
+  });
+  var btns = document.querySelectorAll('.cbtn');
+  for(var j=0;j<btns.length;j++){
+    btns[j].addEventListener('click', function(){
+      var key = this.getAttribute('data-copy');
+      copyText(document.getElementById('out-' + key).textContent, this);
+    });
+  }
+  generate();
+}
+init();
+</script>
+</body>
+</html>

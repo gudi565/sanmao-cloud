@@ -155,6 +155,7 @@ export const TOOL_CATEGORIES = [
   "办公",
   "学习",
   "论文",
+  "提示词",
   "视频",
   "编程",
   "音频",
@@ -178,6 +179,15 @@ export const TOOLS: Tool[] = [
     paid: true,
     url: "https://8.218.50.171.nip.io/",
     from: "#0e7c5a",
+    to: "#5bf0b0",
+  },
+  {
+    name: "AI 提示词工具箱",
+    category: "提示词",
+    desc: "图像 / 视频 / 音乐 / 语音 / 文字 / 代码 · 28 个提示词生成器，点开即用",
+    icon: "sparkles",
+    url: "/prompt-tools/index.html",
+    from: "#13a06b",
     to: "#5bf0b0",
   },
 ];

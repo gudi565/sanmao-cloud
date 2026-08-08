@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旁白脚本处理器</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>旁白脚本处理器</h1><p class="sub">ElevenLabs / CosyVoice / Fish · 停顿+情绪+数字全写</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="raw">原始文案</label><textarea id="raw" rows="7" placeholder="粘贴大段旁白原文…">2024年,我们的App月活突破250万,同比增长35%。用户每天平均停留12.5分钟,GDP贡献超0.8%。这不仅是数字,更是信任。</textarea></div>
+<div class="field"><label for="purpose">用途</label><select id="purpose"><option>纪录片</option><option>广告</option><option>角色</option><option>有声书</option><option>教程</option></select></div>
+<div class="field-row">
+<div class="field"><label for="speed">语速</label><select id="speed"><option>慢</option><option selected>中</option><option>快</option></select></div>
+<div class="field"><label for="mood">情绪基调</label><select id="mood"><option>沉稳信任</option><option>激昂</option><option>低沉叙事</option><option selected>温暖</option><option>紧张</option></select></div>
+</div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">处理后脚本</span><button class="cbtn" data-copy="script">复制</button></div><div class="card-bd" id="out-script"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">音色与引擎建议</span><button class="cbtn" data-copy="engine">复制</button></div><div class="card-bd" id="out-engine"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>机械感靠微停顿打散 · 发音错靠拼音注音 · 长脚本分段生成再拼避免漂移</p></div></footer>
+<script>
+const D='零一二三四五六七八九';
+function num2cn(s){
+  s=String(s).trim();
+  if(!/^\d+(\.\d+)?$/.test(s))return s;
+  if(s.indexOf('.')>=0){
+    const p=s.split('.'),i=p[0],d=p[1];
+    return (i===''?'零':intPart(i))+'点'+[...d].map(x=>D[+x]||x).join('');
+  }
+  return intPart(s);
+}
+function intPart(s){
+  s=String(s).replace(/^0+(?=\d)/,'');
+  if(s===''||s==='0')return '零';
+  let n=parseInt(s,10);
+  const yi=Math.floor(n/100000000);n%=100000000;
+  const wa=Math.floor(n/10000);n%=10000;
+  let out='';
+  if(yi>0){out+=q4(yi)+'亿';if(wa>0&&wa<1000)out+='零';}
+  if(wa>0){out+=q4(wa)+'万';if(n>0&&n<1000)out+='零';}
+  if(n>0){out+=q4(n);}
+  return out||'零';
+}
+function q4(n){
+  if(n===0)return '';
+  let o='';
+  if(n>=1000){const c=Math.floor(n/1000);o+=(c===2?'两':D[c])+'千';n%=1000;if(n>0&&n<100)o+='零';}
+  if(n>=100){const c=Math.floor(n/100);o+=(c===2?'两':D[c])+'百';n%=100;if(n>0&&n<10)o+='零';}
+  if(n>=10){const c=Math.floor(n/10);o+=(c===1?'':D[c])+'十';n%=10;}
+  if(n>0)o+=D[n];
+  return o;
+}
+function esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+
+const UNITS=[['GB','吉字节'],['MB','兆字节'],['TB','太字节'],['km','千米'],['kg','千克'],['mg','毫克'],['ml','毫升'],['mm','毫米'],['cm','厘米'],['ms','毫秒'],['min','分钟'],['h','小时'],['L','升'],['m','米'],['g','克'],['s','秒']].sort((a,b)=>b[0].length-a[0].length);
+const ABBR=[['GDP','国内生产总值'],['DIY','自己动手'],['CEO','首席执行官'],['USB','通用串行总线'],['KPI','关键绩效指标'],['VIP','贵宾成员'],['App','应用程序'],['APP','应用程序'],['PDF','文档文件'],['VR','虚拟现实'],['AR','增强现实'],['UI','用户界面'],['UX','用户体验'],['IT','信息技术'],['IP','知识产权'],['PC','个人电脑'],['AI','人工智能'],['VS','对战对比'],['OK','好的']].sort((a,b)=>b[0].length-a[0].length);
+const PINYIN=[['iPhone','[zh:ai-fong]'],['iPad','[zh:ai-pad]'],['GitHub','[zh:git-hab]'],['YouTube','[zh:yu-tu-b]'],['Kindle','[zh:kin-dou]'],['Porsche','[zh:bao-shi-jie]'],['Nike','[zh:nai-ki]'],['OPPO','[zh:ou-po]'],['vivo','[zh:wei-wo]'],['B站','[zh:bei-zhan]']].sort((a,b)=>b[0].length-a[0].length);
+const MOOD={
+  '沉稳信任':{tag:'[calm]',en:'steady, grounded, trustworthy'},
+  '激昂':{tag:'[energetic]',en:'passionate, uplifting, intense'},
+  '低沉叙事':{tag:'[serious]',en:'low, grave, narrative'},
+  '温暖':{tag:'[warm]',en:'warm, gentle, intimate'},
+  '紧张':{tag:'[tense]',en:'tense, suspenseful, breathy'}
+};
+
+function splitLong(sen){
+  if(sen.length<=24)return [sen];
+  const chunks=sen.split(/[、，；,]/).map(s=>s.trim()).filter(Boolean);
+  if(chunks.length<=1)return [sen];
+  const groups=[];let cur='';
+  for(const c of chunks){
+    if(cur&&(cur+'，'+c).length>24){groups.push(cur);cur=c;}
+    else cur=cur?cur+'，'+c:c;
+  }
+  if(cur)groups.push(cur);
+  return groups;
+}
+
+function buildScript(){
+  const raw0=(document.getElementById('raw').value||'').trim();
+  if(!raw0)return '请输入原始文案,生成器将输出处理后的可朗读脚本。';
+  const speed=document.getElementById('speed').value;
+  const mood=document.getElementById('mood').value;
+  const moodTag=MOOD[mood].tag;
+  const pause={慢:'0.7s',中:'0.5s',快:'0.3s'}[speed];
+
+  let t=raw0;
+  t=t.replace(/(\d+(?:\.\d+)?)\s*%/g,(m,n)=>'百分之'+n);
+  for(const[u,c]of UNITS){
+    const re=new RegExp('(\\d+(?:\\.\\d+)?)\\s*'+esc(u)+'(?![a-zA-Z])','g');
+    t=t.replace(re,(m,n)=>num2cn(n)+c);
+  }
+  t=t.replace(/\d+(?:\.\d+)?/g,m=>num2cn(m));
+  for(const[a,e]of ABBR){
+    const re=new RegExp('\\b'+esc(a)+'\\b','g');
+    t=t.replace(re,e);
+  }
+  t=t.replace(/[!！]+/g,'。').replace(/[?？]+/g,'。').replace(/…+/g,'，').replace(/[;；]/g,'，');
+  t=t.replace(/，\s*，/g,'，').replace(/。\s*。/g,'。').replace(/[ \t]+/g,' ');
+
+  const paras=t.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  let out=moodTag+'  // '+MOOD[mood].en+'\n\n';
+  paras.forEach((para,pi)=>{
+    if(pi>0)out+='[breath]\n';
+    const sens=para.split(/。+/).map(s=>s.trim()).filter(Boolean);
+    sens.forEach((sen)=>{
+      const parts=splitLong(sen);
+      out+=parts.join('，')+'。[pause '+pause+']\n';
+    });
+    out+='\n';
+  });
+
+  for(const[tok,pin]of PINYIN){
+    out=out.split(tok).join(tok+pin);
+  }
+  return out.trim();
+}
+
+function buildEngine(){
+  const purpose=document.getElementById('purpose').value;
+  const mood=document.getElementById('mood').value;
+  const speed=document.getElementById('speed').value;
+  const voice={
+    '纪录片':'成熟沉稳男声 / 温暖知性女声(ElevenLabs: Adam、Rachel;CosyVoice: 长叙事参考音)',
+    '广告':'磁性男声 / 清亮女声,品牌穿透力(ElevenLabs: Antoni、Bella)',
+    '角色':'按角色切换多声线,性别年龄匹配;主角单独建音色库',
+    '有声书':'长程稳定叙事男/女声(ElevenLabs: Josh、Emma;避免情绪跳变)',
+    '教程':'清晰中性女声 / 平稳男声,吐字优先,不抢内容'
+  }[purpose];
+  const moodEn=MOOD[mood].en;
+  const stab=(mood==='激昂'||mood==='紧张')?'0.30':'0.45';
+  const sty=(mood==='激昂')?'0.40':(mood==='紧张'?'0.35':'0.15');
+  const speedTip={
+    慢:'每段 ≤40 字,段间留 0.7s 停顿,多用 [breath] 喘息',
+    中:'每段 60-80 字,句末 [pause 0.5s]',
+    快:'可整段生成,停顿压缩到 0.3s'
+  }[speed];
+  let s='【推荐音色】\n'+voice;
+  s+='\n\n【情绪基调】 '+mood+' → '+moodEn;
+  s+='\n\n【ElevenLabs 参数】\nmodel: eleven_multilingual_v2\nstability: '+stab+'   similarity_boost: 0.80   style: '+sty+'   use_speaker_boost: true';
+  s+='\n\n【CosyVoice 参考音频】\n5-15 秒干净单人录音(同情绪/同性别),文本对齐 ≤20 字;跨情绪用多条参考,拼接处留 0.3s 静音,合并后再做响度归一。';
+  s+='\n\n【防漂移 · 语速】\n'+speedTip+'。\n机械感:靠 [breath] 与微停顿打散,避免整段匀速朗读。\n发音错:品牌名/生僻字后必标 [zh:拼音]。\n长脚本:分段生成再合并 WAV,避免后段音色漂移与口型失准。';
+  return s;
+}
+
+function generate(){
+  document.getElementById('out-script').textContent=buildScript();
+  document.getElementById('out-engine').textContent=buildEngine();
+}
+
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){
+  const o=btn.textContent;
+  const d=()=>{
+    btn.textContent='已复制 ✓';
+    btn.style.background='var(--accent)';
+    btn.style.color='#fff';
+    btn.style.borderColor='var(--accent)';
+    setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d();});}
+  else{fallbackCopy(text);d();}
+}
+function copyAll(){
+  const s=document.getElementById('out-script').textContent;
+  const e=document.getElementById('out-engine').textContent;
+  copyText('【处理后脚本】\n'+s+'\n\n【音色与引擎建议】\n'+e,document.getElementById('btn-copy-all'));
+}
+
+function init(){
+  ['raw','purpose','speed','mood'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('input',generate);
+    el.addEventListener('change',generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(b=>{
+    b.addEventListener('click',()=>copyText(document.getElementById('out-'+b.dataset.copy).textContent,b));
+  });
+  generate();
+}
+init();
+</script>
+</body>
+</html>

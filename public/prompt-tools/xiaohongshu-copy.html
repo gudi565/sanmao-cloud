@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小红书种草文案 · Prompt 生成器</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>小红书种草文案</h1><p class="sub">LLM · 标题 + 正文 + 人设</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field"><label for="topic">产品 / 主题</label><textarea id="topic" rows="2">冷萃咖啡液</textarea></div>
+  <div class="field"><label for="points">核心卖点（1-3 个）</label><textarea id="points" rows="3">1. 三秒速溶，冷水直冲
+2. 口感醇厚不酸涩
+3. 口袋大小，通勤随身</textarea></div>
+  <div class="field"><label for="persona">人设 / 账号调性</label><select id="persona"><option>精致生活家</option><option>学生党平价</option><option>宝妈</option><option>测评博主</option><option>职场精英</option></select></div>
+  <div class="field"><label for="wordcount">正文字数</label><select id="wordcount"><option value="短">短（约 100 字）</option><option value="中" selected>中（约 200 字）</option><option value="长">长（350+ 字）</option></select></div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card"><div class="card-hd"><span class="card-tt">System Prompt（角色 + 任务 + 输出格式）</span><button class="cbtn" data-copy="system">复制</button></div><div class="card-bd" id="out-system"></div></div>
+  <div class="card"><div class="card-hd"><span class="card-tt">Few-shot 示例（供模型对齐风格）</span><button class="cbtn" data-copy="fewshot">复制</button></div><div class="card-bd" id="out-fewshot"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>标题抓钩子、正文走「场景-痛点-方案-卖点-CTA」、标签放末尾 —— 拿去喂 ChatGPT / Kimi / 豆包 / 智谱即可。</p></div></footer>
+<script>
+const PERSONA_KB={
+'精致生活家':{tone:'优雅从容、注重生活质感、审美在线',habits:'质感 · 治愈 · 氛围感 · 一眼心动 · 仪式感',angle:'从生活美学与仪式感切入，强调产品如何融入精致日常',tag:'精致生活'},
+'学生党平价':{tone:'活泼真实、接地气、性价比至上',habits:'平价 · 学生党 · 闭眼入 · 真香 · 性价比 · 宝藏好物',angle:'从预算有限的痛点切入，强调花小钱办大事',tag:'学生党好物'},
+'宝妈':{tone:'温暖踏实、关注实用安全与家庭场景',habits:'亲测 · 放心 · 带娃神器 · 省心 · 安全 · 强推',angle:'从育儿与家务真实痛点切入，强调省时省力安心',tag:'宝妈推荐'},
+'测评博主':{tone:'客观专业、数据说话、对比鲜明',habits:'实测 · 对比 · 数据 · 优缺点 · 横向测评 · 不吹不黑',angle:'从专业视角切入，用对比与数据建立信任',tag:'真实测评'},
+'职场精英':{tone:'干练高效、注重时间价值与品质',habits:'高效 · 通勤 · 质感 · 职场必备 · 提升效率 · 精致',angle:'从职场效率与形象切入，强调省时与专业感',tag:'职场好物'}
+};
+const WORD_KB={'短':'正文约 100 字，3-4 段短句，节奏明快、直击重点','中':'正文约 200 字，4-6 段，场景与卖点均衡展开','长':'正文 350 字以上，6-8 段，细节充分、有干货感'};
+const WORD_BODY={'短':'约 100 字','中':'约 200 字','长':'350 字以上'};
+
+function val(id){return document.getElementById(id).value.trim();}
+
+function buildSystem(topic,points,persona,wc){
+  const p=PERSONA_KB[persona];
+  const ptLines=points.split('\n').map(function(l){return '  '+l;}).join('\n');
+  return '# 角色\n'+
+'你是小红书资深种草文案专家，擅长用真实分享的口吻，写出高互动、强转化、却毫无硬广感的爆款笔记。\n'+
+'\n'+
+'# 任务\n'+
+'为以下产品/主题撰写一组完整的种草文案：\n'+
+'- 产品/主题：'+topic+'\n'+
+'- 核心卖点：\n'+ptLines+'\n'+
+'- 人设/账号调性：'+persona+'（'+p.tone+'）\n'+
+'- 正文长度：'+WORD_KB[wc]+'\n'+
+'\n'+
+'# 输出格式（严格遵循）\n'+
+'\n'+
+'## 一、标题（共 5 条）\n'+
+'每条要求：\n'+
+'- 20 字以内\n'+
+'- 含 1-2 个 emoji\n'+
+'- 使用钩子手法（数字量化 / 反差对比 / 疑问悬念 / 痛点直击 / 场景带入）\n'+
+'- 贴合「'+persona+'」语气：'+p.angle+'\n'+
+'\n'+
+'## 二、正文\n'+
+'- 长度：'+WORD_KB[wc]+'\n'+
+'- 结构：「场景代入 → 痛点共鸣 → 方案引出 → 卖点展开 → 行动号召（CTA）」\n'+
+'- 分段简短，每段 1-3 行，段间空一行\n'+
+'- 每段 1-2 个 emoji 点缀，不过度堆砌\n'+
+'- 第一人称、口语化，像跟朋友安利而非打广告\n'+
+'- 卖点融入使用场景，不罗列参数\n'+
+'\n'+
+'## 三、话题标签（5-8 个）\n'+
+'- 放在正文最末尾，单独一行\n'+
+'- 混搭：大词（品类/场景）+ 中词（细分需求）+ 小词（长尾）\n'+
+'- 每个以 # 开头，空格分隔\n'+
+'\n'+
+'# 风格约束\n'+
+'- 语气基调：'+p.tone+'\n'+
+'- 高频词汇：'+p.habits+'\n'+
+'- 切入角度：'+p.angle+'\n'+
+'- 必须避免：硬广感、参数罗列、「家人们谁懂啊」等过度套话、虚假承诺、夸大到失真\n'+
+'- 第一原则：真实体验感 ＞ 推销感。让读者觉得「这是一个真人在分享」，而不是「这是一条广告」。';
+}
+
+function buildFew(topic,points,persona,wc){
+  const p=PERSONA_KB[persona];
+  const pl=points.split('\n').filter(function(l){return l.trim();});
+  const s1=pl[0]||'核心卖点一（替换为真实感受）';
+  const s2=pl[1]||'核心卖点二（替换为真实感受）';
+  const s3=pl[2]||'核心卖点三（替换为真实感受）';
+  const shortTag=topic.length>6?topic.slice(0,6):topic;
+  return '# 标题示例\n'+
+'✨ 用了 30 天，这个 '+topic+' 真的把我拿捏了\n'+
+'\n'+
+'# 正文示例（'+persona+'风格 · '+WORD_BODY[wc]+'）\n'+
+'\n'+
+'不知道你们有没有这种时刻——\n'+
+'早上赶着出门，却总被一件小事拖住节奏 🥲\n'+
+'（场景：写一个读者会猛点头的真实使用瞬间）\n'+
+'\n'+
+'直到我遇见了 '+topic+'，真的有种相见恨晚的感觉。\n'+
+'\n'+
+'（痛点 → 方案：先说曾经的困扰，再自然引出产品作为解法）\n'+
+'\n'+
+'最让我上头的是这几点：\n'+
+'✅ '+s1+' ——（补一句具体使用感受，别空说参数）\n'+
+'✅ '+s2+' ——（用一个生活小细节来证明）\n'+
+'✅ '+s3+' ——（和以前用过的对比，突出差异）\n'+
+'\n'+
+'坚持用了一段时间，最明显的改变是——（写出结果或心情变化）。\n'+
+'\n'+
+'真心觉得有同样困扰的朋友可以试试，早用早享受 💡\n'+
+'\n'+
+'# 话题标签示例\n'+
+'#'+p.tag+' #好物分享 #'+shortTag+' #生活日常 #提升幸福感 #真实分享\n'+
+'\n'+
+'---\n'+
+'↑ 以上为风格对齐范例。实际生成时，请用真实产品信息与体验细节替换括号内的占位内容，避免套话与重复。';
+}
+
+function generate(){
+  var topic=val('topic')||'（请填写产品/主题）';
+  var points=val('points')||'（请填写核心卖点）';
+  var persona=val('persona')||'精致生活家';
+  var wc=val('wordcount')||'中';
+  document.getElementById('out-system').textContent=buildSystem(topic,points,persona,wc);
+  document.getElementById('out-fewshot').textContent=buildFew(topic,points,persona,wc);
+}
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(function(){fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function copyAll(){copyText(['【System Prompt】',document.getElementById('out-system').textContent,'','【Few-shot 示例】',document.getElementById('out-fewshot').textContent].join('\n'),document.getElementById('btn-copy-all'))}
+
+function init(){
+  ['topic','points','persona','wordcount'].forEach(function(id){
+    var el=document.getElementById(id);
+    el.addEventListener('input',generate);
+    el.addEventListener('change',generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(b){
+    b.addEventListener('click',function(){
+      var k=b.getAttribute('data-copy');
+      copyText(document.getElementById('out-'+k).textContent,b);
+    });
+  });
+  generate();
+}
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sora 电影感单镜头</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:specific 0 0 0 3px var(--asoft)}
+.field textarea{resize:vertical;min-height:62px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space: dormant;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>Sora 电影感单镜头</h1><p class="sub">英文自然语言段落 · 运镜 + 光线 + 时间感</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field"><label for="subject">场景与主体</label><textarea id="subject" placeholder="e.g. a young woman in a linen dress sitting alone at a small cafe table by the rain-streaked window"></textarea></div>
+  <div class="field"><label for="camera">运镜</label><select id="camera">
+    <option value="dolly-in">dolly-in 推近</option>
+    <option value="dolly-out">dolly-out 拉远</option>
+    <option value="pan left">pan left 左摇</option>
+    <option value="tilt up">tilt up 上仰</option>
+    <option value="orbit">orbit 环绕</option>
+    <option value="aerial drone">aerial drone 航拍</option>
+    <option value="handheld follow">handheld follow 手持跟拍</option>
+    <subject value="locked-off tripod">locked-off tripod 固定三脚架</option>
+    <option value="POV">POV 第一人称</option>
+    <option value="crane up">crane up 摇臂升起</option>
+  </select></div>
+  <div class="field"><label for="light">光线</label><select id="light">
+    <option value="golden hour">golden hour 黄金时刻</option>
+    <option value="blue hour">blue hour 蓝调时刻</option>
+    <option value="harsh midday">harsh midday 正午硬光</option>
+    <option value="neon night">neon night 霓虹夜</option>
+    <option value="soft overcast">soft overcast 柔和阴天</option>
+    <option value="backlit silhouette">backlit silhouette 逆光剪影</option>
+  </select></div>
+  <div class="field"><label for="shot">景别</label><select id="shot">
+    <option value="wide">wide 远景</option>
+    <option value="medium" selected>medium 中景</option>
+    <option value="close-up">close-up 特写</option>
+    <option value="macro">macro 微距</option>
+  </select></div>
+  <div class="field"><label for="temporal">时间推进（可选）</label><textarea id="temporal" placeholder="e.g. she lifts the cup, steam rises, she looks out the window"></textarea></div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card"><div class="card-hd"><span class="card-tt">Prompt (English)</span><button class="cbtn" data-copy="prompt">复制</button></div><div class="card-bd" id="out-prompt"></div></div>
+  <div class="card"><div class="card-hd"><span class="card-tt">防漂移</span><button class="cbtn" data-copy="anti">复制</button></div><div class="card-bd" id="out-anti"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>一次只写一个主体的一个动作，把时间写具体，Safari 才不漂。</p></div></footer>
+<script>
+const KB={
+  camera:{
+    'dolly-in':'a slow dolly-in that pushes gently toward the subject',
+    'dolly-out':'a gradual dolly-out pulling back to reveal the wider scene',
+    'pan left':'a smooth, unhurried pan to the left',
+    'tilt up':'a slow, deliberate tilt upward following the vertical line',
+    'orbit':'a slow orbiting shot that arcs around the subject, revealing depth and dimension',
+    'aerial drone':'an aerial drone shot gliding high above, slowly descending',
+    'handheld follow':'an intimate handheld follow shot tracking just behind the subject with subtle natural sway',
+    'locked-off tripod':'a locked-off tripod shot with a perfectly static, rigorously composed frame',
+    'POV':'a first-person POV shot seen directly through the subject’s eyes',
+    'crane up':'a crane shot rising slowly upward to reveal scale and surrounding context'
+  },
+  light:{
+    'golden hour':'warm golden hour light raking low across the scene, long soft shadows',
+    'blue hour':'cool blue hour twilight settling over the scene, balanced ambient glow',
+    'harsh midday':'harsh overhead midday sun casting hard, short shadows and bright highlights',
+    'neon night':'saturated neon night lighting, magenta and cyan spill reflecting on wet surfaces',
+    'soft overcast':'soft, diffused overcast light with gentle falloff and muted contrast',
+    'backlit silhouette':'strong backlight casting the subject into a clean, dark silhouette against a bright ground'
+  },
+  shot:{
+    'wide':'Wide shot',
+    'medium':'Medium shot',
+    'close-up':'Close-up',
+    'macro':'Macro shot'
+  }
+};
+function val(id){const el=document.getElementById(id);return el?el.value:''}
+function build(){
+  let subject=(val('subject')||'').trim();
+  const hasChinese=/[一-鿿]/.test(subject);
+  const fallback='a young woman in a linen dress sitting alone at a small cafe table by the rain-streaked window';
+  if(!subject)subject=fallback;
+  const cam=KB.camera[val('camera')]||KB.camera['dolly-in'];
+  const lit=KB.light[val('light')]||KB.light['golden hour'];
+  const sz=KB.shot[val('shot')]||KB.shot['medium'];
+  let temporal=(val('temporal')||'').trim();
+  let parts=[];
+  parts.push(sz+'. '+subject+'.');
+  parts.push('The camera executes '+cam+'.');
+  parts.push('Lit by '+lit+', with naturalistic textures, fine film grain, and rich environmental detail.');
+  parts.push('Quiet, contemplative mood, grounded and unhurried, a sense of solitude.');
+  if(temporal){parts.push('Over the duration of the shot: '+temporal+'.')}
+  parts.push('No text on screen, no watermarks, no logos. Shot on 35mm film, cinematic color, 24fps, shallow depth of field.');
+  const prompt=parts.join(' ');
+  let anti=[];
+  anti.push('· Sora 对详细自然语言段落的还原 > 关键词堆叠；主体、动作、环境、时间都写具体。');
+  anti.push('· 一次只描述一个主体的一个动作；多动作会互相污染、出现肢体错乱。');
+  if(hasChinese){anti.push('· 检测到中文输入：Sora 对英文理解更准，建议把"场景与主体""时间推进"翻成英文再生成，还原度更高。')}
+  anti.push('· 防屏幕文字/水印：已写入 "no text on screen"。');
+  anti.push('· 防手部扭曲：如主体有手部动作，在"时间推进"里写清具体哪只手做什么，例如 "her right hand slowly lifts the cup"。');
+  anti.push('· 防画面闪烁/抽帧：已指定 24fps + 35mm 胶片质感，锁定稳定帧率。');
+  if(!temporal){anti.push('· "时间推进"留空 = 静态构图；填一个连贯动作可让镜头有叙事推进、减少空镜漂浮。')}else{anti.push('· 时间推进已填写：确保是单一连续动作，不要塞入多个不相关动作。')}
+  anti.push('· 避免空泛词：不要写 epic / stunning / masterpiece / breathtaking；改写具体质感，如 "dust motes drifting through a shaft of light"。');
+  return{prompt:prompt,anti:anti.join('\n')};
+}
+function generate(){
+  const r=build();
+  document.getElementById('out-prompt').textContent=r.prompt;
+  document.getElementById('out-anti').textContent=r.anti;
+}
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor='';},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function copyAll(){copyText(['=== Prompt (English) ===',document.getElementById('out-prompt').textContent,'','=== 防漂移 ===',document.getElementById('out-anti').textContent].join('\n'),document.getElementById('btn-copy-all'))}
+function init(){
+  const fields=['subject','camera','light','shot','temporal'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener('input',generate);el.addEventListener('change',generate)}});
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(b=>{b.addEventListener('click',()=>{const k=b.getAttribute('data-copy');copyText(document.getElementById('out-'+k).textContent,b)})});
+  generate();
+}
+init();
+</script>
+</body>
+</html>

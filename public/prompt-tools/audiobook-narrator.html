@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有声书多角色脚本</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center}
+.header h1{font-size:26px;font-weight:700;letter-spacing:-.4px}
+.header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0}
+.btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
+.card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>有声书多角色脚本</h1><p class="sub">多角色有声书脚本预处理 · 适配 ElevenLabs 多说话人 / 逐角色分段生成</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field">
+    <label for="in-text">原文</label>
+    <textarea id="in-text" rows="9" placeholder="粘贴小说/故事原文,可含对白。例:&#10;林深推开门,低声说:"你来了。"&#10;苏晚转过身:"我等了很久。""></textarea>
+  </div>
+  <div class="field">
+    <label for="in-chars">角色列表(每行 名字:音色)</label>
+    <textarea id="in-chars" rows="4" placeholder="林深:低沉磁性男声&#10;苏晚:清亮年轻女声"></textarea>
+  </div>
+  <div class="field">
+    <label for="in-narrator">叙述者音色</label>
+    <select id="in-narrator">
+      <option value="沉稳中年男">沉稳中年男</option>
+      <option value="知性女声">知性女声</option>
+      <option value="旁白中性">旁白中性</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="in-section">章节 / 段(可选)</label>
+    <input id="in-section" type="text" placeholder="例:第三章 初遇">
+  </div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">多角色标注脚本</span><button class="cbtn" data-copy="script">复制</button></div>
+    <div class="card-bd" id="out-script"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">引擎建议</span><button class="cbtn" data-copy="engine">复制</button></div>
+    <div class="card-bd" id="out-engine"></div>
+  </div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>每角色独立 voice · 每段 &lt;5000 字 · 句间加微停顿,避免音色漂移与机械感</p></div></footer>
+<script>
+const RARE_CHARS = {
+  '氤':'yīn','氲':'yǔn','翕':'xī','翊':'yì','翌':'yì','曜':'yào',
+  '罅':'xià','蹙':'cù','蹁':'pián','跹':'xiān','踯':'zhí','躅':'zhú',
+  '踟':'chí','蹰':'chú','踌':'chóu','躇':'chú','觊':'jì','觎':'yú',
+  '鬓':'bìn','髻':'jì','钏':'chuàn','钗':'chāi','钿':'diàn',
+  '霁':'jì','霭':'ǎi','霾':'mái','霡':'mài','霢':'mài','霂':'mù',
+  '甦':'sū','哂':'shěn','哽':'gěng','噱':'xué','嗔':'chēn','嗟':'jiē',
+  '嫔':'pín','嬷':'mó','嫗':'yù','嫦':'cháng','娉':'pīng','婷':'tíng',
+  '骐':'qí','骥':'jì','骁':'xiāo','骝':'liú','骅':'huá','骢':'cōng',
+  '髫':'tiáo','髯':'rán','髦':'máo','鬟':'huán','靥':'yè','魇':'yǎn',
+  '魑':'chī','魅':'mèi','魁':'kuí','魉':'liǎng',
+  '烬':'jìn','煊':'xuān','熠':'yì','煜':'yù','烨':'yè','炜':'wěi',
+  '珩':'héng','琦':'qí','琬':'wǎn','琰':'yǎn','璇':'xuán','璎':'yīng',
+  '珞':'luò','瑗':'yuàn','璋':'zhāng','璨':'càn','璀':'cuǐ','琛':'chēn',
+  '蒹':'jiān','葭':'jiā','苕':'tiáo','茆':'máo','荇':'xìng','蘅':'héng',
+  '芟':'shān','葳':'wēi','蕤':'ruí','荦':'luò','茕':'qióng',
+  '鸾':'luán','鹄':'hú','鹮':'huán','隼':'sǔn','雏':'chú','鸢':'yuān',
+  '趔':'liè','趄':'qiè','趑':'zī',
+  '阒':'qù','阗':'tián','阖':'hé','阙':'què','阚':'kàn',
+  '飒':'sà','飙':'biāo','飨':'xiǎng','餍':'yàn','馑':'jǐn',
+  '馐':'xiū','馔':'zhuàn','饕':'tāo','餮':'tiè',
+  '廪':'lǐn','庋':'guǐ','庖':'páo','庾':'yǔ','廨':'xiè',
+  '衾':'qīn','衽':'rèn','袂':'mèi','裎':'chéng','褫':'chǐ','襦':'rú',
+  '襁':'qiǎng','褓':'bǎo','觳':'hú','觫':'sù','觥':'gōng','觞':'shāng',
+  '赧':'nǎn','赭':'zhě','赍':'jī','赉':'lài',
+  '辚':'lín','辘':'lù','轹':'lì','轳':'lú',
+  '陟':'zhì','陬':'zōu','陲':'chuí','隈':'wēi',
+  '雒':'luò','霙':'yīng','邈':'miǎo','邙':'máng','邗':'hán','邛':'qióng',
+  '郜':'gào','郾':'yǎn','鄢':'yān','鄞':'yín',
+  '妁':'shuò','姝':'shū','姣':'jiāo','娥':'é','媪':'ǎo','婵':'chán',
+  '娟':'juān','姽':'guǐ','婳':'huà','嫽':'liáo','嫮':'hù','媆':'ruǎn',
+  '孑':'jié','孓':'jué','尕':'gǎ','厍':'shè','卮':'zhī',
+  '鸧':'cāng','鹪':'jiāo','鹩':'liáo','鹇':'xián','鹧':'zhè','鸪':'gū',
+  '璁':'cōng','瑭':'táng','玙':'yú','玚':'chàng','琤':'chēng',
+  '焘':'tāo','焜':'kūn',
+  '锘':'nuò','锫':'péi','锬':'tān','锵':'qiāng','镠':'liú',
+  '溟':'míng','溯':'sù','滟':'yàn','潋':'liàn','沚':'zhǐ','涘':'sì',
+  '濯':'zhuó','淙':'cóng','淦':'gàn','淞':'sōng','泠':'líng','泶':'xué',
+  '垅':'lǒng','垌':'dòng','埏':'yán','垠':'yín','垆':'lú',
+  '岫':'xiù','岬':'jiǎ','岿':'kuī','嵛':'yú','崮':'gù','崃':'lái',
+  '嶙':'lín','峋':'xún','嵯':'cuó','嶷':'yí','嵩':'sōng',
+  '悫':'què','惇':'dūn','愆':'qiān','愍':'mǐn','忭':'biàn','忡':'chōng',
+  '慵':'yōng','愠':'yùn','怫':'fú','惘':'wǎng','怅':'chàng',
+  '箪':'dān','瓢':'piáo','篦':'bì','筢':'pó','筠':'jūn','筠':'yún',
+  '褡':'dā','裢':'lián','裰':'duō','裣':'yǎn','衲':'nà',
+  '踝':'huái','跗':'fū','踵':'zhǒng','蹯':'fán','蹀':'dié','踅':'xué'
+};
+
+function numToChinese(n){
+  if(n===0)return '零';
+  if(n<0)return '负'+numToChinese(-n);
+  const d=['零','一','二','三','四','五','六','七','八','九'];
+  if(n<10)return d[n];
+  if(n<100){
+    if(n<20)return '十'+(n%10===0?'':d[n%10]);
+    return d[Math.floor(n/10)]+'十'+(n%10===0?'':d[n%10]);
+  }
+  if(n<1000){
+    const h=Math.floor(n/100),rest=n%100;
+    if(rest===0)return d[h]+'百';
+    if(rest<10)return d[h]+'百零'+d[rest];
+    return d[h]+'百'+numToChinese(rest);
+  }
+  if(n<10000){
+    const k=Math.floor(n/1000),rest=n%1000;
+    if(rest===0)return d[k]+'千';
+    if(rest<100)return d[k]+'千零'+numToChinese(rest);
+    return d[k]+'千'+numToChinese(rest);
+  }
+  if(n<100000000){
+    const w=Math.floor(n/10000),rest=n%10000;
+    if(rest===0)return numToChinese(w)+'万';
+    if(rest<1000)return numToChinese(w)+'万零'+numToChinese(rest);
+    return numToChinese(w)+'万'+numToChinese(rest);
+  }
+  return numToChinese(Math.floor(n/100000000))+'亿'+numToChinese(n%100000000);
+}
+
+function convertNumbers(text){
+  return text.replace(/\d+/g,m=>{
+    const n=parseInt(m,10);
+    if(isNaN(n)||m.length>12)return m;
+    return numToChinese(n);
+  });
+}
+
+function addPinyin(text){
+  let r='';
+  for(const ch of text){
+    if(RARE_CHARS[ch])r+=ch+'('+RARE_CHARS[ch]+')';
+    else r+=ch;
+  }
+  return r;
+}
+
+function breakLongSentences(text){
+  const parts=text.split(/([。！？])/);
+  const out=[];
+  for(let i=0;i<parts.length;i++){
+    const seg=parts[i];
+    if(!seg)continue;
+    if(seg.length>40){
+      const sub=seg.split(/([，、；])/);
+      let cur='';
+      const chunks=[];
+      for(let j=0;j<sub.length;j++){
+        cur+=sub[j];
+        if(sub[j]==='，'||sub[j]==='、'||sub[j]==='；'){
+          if(cur.length>=18){chunks.push(cur);cur='';}
+        }
+      }
+      if(cur)chunks.push(cur);
+      out.push(chunks.join('\n  '));
+    }else{
+      out.push(seg);
+    }
+  }
+  return out.join('');
+}
+
+function detectEmotion(text){
+  if(/哭|泣|泪|悲|痛|颤|抖|惊恐|害怕|恐惧|慌|焦急|怒|吼|咆哮|厉声|冷冷|寒|厉|颤栗|绝望|嘶吼|咆哮|崩溃/.test(text))return '[tense]';
+  if(/笑|温|轻柔|温柔|暖|微笑|亲昵|怜|宠|慰藉|甜|柔软|眉眼弯弯/.test(text))return '[warm]';
+  if(/低声|轻声|耳语|悄悄|呢喃|喃喃|低喃|微不可闻|小声|气声/.test(text))return '[whisper]';
+  return '';
+}
+
+function annotateParagraph(para,charOrder){
+  let processed=convertNumbers(para);
+  processed=addPinyin(processed);
+  processed=breakLongSentences(processed);
+
+  const hasQuote=/[「『“"][^」』”"]{1,}?[」』”"]/.test(para);
+
+  let speaker=null;
+  if(charOrder.length>0){
+    for(const name of charOrder){
+      try{
+        const re=new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*[说道:：]');
+        if(re.test(para)){speaker=name;break;}
+      }catch(e){
+        if(para.includes(name)){speaker=name;break;}
+      }
+    }
+    if(!speaker){
+      for(const name of charOrder){
+        if(para.includes(name)){speaker=name;break;}
+      }
+    }
+  }
+
+  const isDialogue=hasQuote||speaker;
+
+  if(isDialogue){
+    const emotion=detectEmotion(para);
+    let prefix='['+(speaker||'对话')+']';
+    if(emotion)prefix+=' '+emotion;
+    return prefix+' '+processed;
+  }
+  return '[narrator] '+processed;
+}
+
+function generate(){
+  const raw=document.getElementById('in-text').value;
+  const charRaw=document.getElementById('in-chars').value.trim();
+  const narratorType=document.getElementById('in-narrator').value;
+  const section=document.getElementById('in-section').value.trim();
+
+  const chars={};
+  const charOrder=[];
+  if(charRaw){
+    charRaw.split('\n').forEach(line=>{
+      line=line.trim();
+      if(!line)return;
+      const m=line.match(/^([^:：]+)[：:]\s*(.+)$/);
+      if(m){
+        const name=m[1].trim();
+        chars[name]=m[2].trim();
+        if(!charOrder.includes(name))charOrder.push(name);
+      }else{
+        chars[line]='默认音色';
+        if(!charOrder.includes(line))charOrder.push(line);
+      }
+    });
+  }
+
+  const text=raw.trim();
+  const paragraphs=text?text.split(/\n+/).map(s=>s.trim()).filter(Boolean):[];
+
+  let script='';
+  if(section)script+='【'+section+'】\n\n';
+
+  if(paragraphs.length===0){
+    script+='[请粘贴原文后自动生成标注脚本]';
+  }else{
+    paragraphs.forEach(para=>{
+      script+=annotateParagraph(para,charOrder)+'\n';
+    });
+  }
+
+  document.getElementById('out-script').textContent=script.trim();
+
+  let eng='';
+  eng+='【推荐方案:多角色分层生成】\n\n';
+  eng+='1. ElevenLabs multi-speaker 模式(首选)\n';
+  eng+='   • 为每个角色建立独立 voice(Voice Library 挑选或 Voice Cloning)\n';
+  eng+='   • 项目开启 multi-speaker,按 [角色名] 标签映射对应 voice\n';
+  eng+='   • 叙述段 [narrator] 统一映射到叙述者 voice('+narratorType+'),与对白清晰分离\n\n';
+  if(charOrder.length>0){
+    eng+='2. 角色 → voice 分配清单\n';
+    charOrder.forEach(n=>{
+      eng+='   • '+n+':'+chars[n]+'\n';
+    });
+    eng+='   • 叙述者:'+narratorType+'\n\n';
+  }else{
+    eng+='2. 角色 → voice 分配清单\n';
+    eng+='   • 请先在左侧"角色列表"填入角色与音色描述\n';
+    eng+='   • 叙述者:'+narratorType+'\n\n';
+  }
+  eng+='3. 逐角色分段生成(长文本 / 无 multi-speaker 时用)\n';
+  eng+='   • 按 [角色名] 标签把脚本切成段,每段单独跑一次 TTS\n';
+  eng+='   • 用 剪映 / Audacity / Premiere 拼接,段间留 200-400ms 停顿\n';
+  eng+='   • 每段字数 <5000 字,避免长文本音色漂移\n\n';
+  eng+='4. Voice Cloning(克隆自定义音色)\n';
+  eng+='   • 需 30 秒以上干净样本:单人讲话、无背景音乐、无环境噪音\n';
+  eng+='   • 样本情绪尽量贴合目标情绪(旁白样本别用激动台词)\n';
+  eng+='   • Instant Clone 起步够用;Professional Voice 上更高保真\n\n';
+  eng+='5. 防漂移与拟人化要点\n';
+  eng+='   • 每个角色必须独立 voice,绝不共用(否则听众混淆身份)\n';
+  eng+='   • 句间加 0.3-0.5s 微停顿,消除连续朗读的机械感\n';
+  eng+='   • [whisper]/[tense]/[warm] 段单独生成,引擎对情绪标签响应更稳\n';
+  eng+='   • 数字已全部转中文可直接朗读;生僻字已注音便于核对发音';
+
+  document.getElementById('out-engine').textContent=eng;
+}
+
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function init(){
+  const fields=['in-text','in-chars','in-narrator','in-section'];
+  fields.forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('input',generate);
+    el.addEventListener('change',generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',()=>{
+    const a=document.getElementById('out-script').textContent;
+    const b=document.getElementById('out-engine').textContent;
+    copyText(a+'\n\n'+b,document.getElementById('btn-copy-all'));
+  });
+  document.querySelectorAll('.cbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const key=btn.getAttribute('data-copy');
+      const txt=document.getElementById('out-'+key).textContent;
+      copyText(txt,btn);
+    });
+  });
+  generate();
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

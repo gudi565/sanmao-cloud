@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HeyGen / 即梦 数字人 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+.chk{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer}
+.chk input{width:auto;margin:0}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>HeyGen / 即梦 数字人 prompt</h1><p class="sub">口播脚本口播化 + 双平台设置建议 · 单段 &lt; 30s 防漂移</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="f-script">口播脚本</label><textarea id="f-script" rows="7" placeholder="粘贴完整口播文案…">大家好，欢迎来到我们的频道。今天给大家介绍一款革命性的产品 HeyGen。我们的服务已经覆盖了250个城市，服务超过300万用户。它能把你的转化率提升35%。相信我，这会改变你的生活。感谢关注，我们下期再见。</textarea></div>
+<div class="field"><label for="f-look">形象描述</label><input id="f-look" type="text" placeholder="性别 / 年龄 / 着装 / 场景背景" value="女性，30岁，米色西装，现代办公室背景"></div>
+<div class="field"><label for="f-lang">语种</label><select id="f-lang"><option>中文</option><option>英文</option><option>中日</option></select></div>
+<div class="field"><label for="f-tone">语气</label><select id="f-tone"><option>沉稳信任</option><option>亲切活力</option><option>专业严谨</option><option>温暖</option></select></div>
+<div class="field"><label class="chk" for="f-lipsync"><input id="f-lipsync" type="checkbox" checked> 口型同步（Lip-Sync）</label></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">处理脚本（口播化 · 分段 ≤15字 · 情绪标注）</span><button class="cbtn" data-copy="script">复制</button></div><div class="card-bd" id="out-script"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">平台设置建议（HeyGen / 即梦 / 防漂移）</span><button class="cbtn" data-copy="platform">复制</button></div><div class="card-bd" id="out-platform"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>数字 / 单位 / 品牌名先口播化；机械感就加情绪与停顿；长文本分段 &lt; 30 秒。</p></div></footer>
+<script>
+const BRANDS={
+ 'HeyGen':'嘿金','OpenAI':'Open AI','ChatGPT':'Chat GPT','GPT-4':'GPT 四','GPT':'G-P-T',
+ 'iPhone':'苹果手机','Tesla':'特斯拉','Nike':'耐克','Google':'谷歌','Microsoft':'微软',
+ 'Apple':'苹果','Amazon':'亚马逊','Meta':'Meta','Nvidia':'英伟达','YouTube':'油管',
+ 'Instagram':'Ins 塔','TikTok':'啼嗒','Adobe':'阿多比','Canva':'坎瓦'
+};
+function intToChinese(num){
+ const d=['零','一','二','三','四','五','六','七','八','九'];
+ const u=['','十','百','千','万','十','百','千','亿','十','百','千'];
+ if(num===0)return '零';
+ const s=String(num);let res='';let zero=false;
+ for(let i=0;i<s.length;i++){
+  const pos=s.length-1-i;const n=+s[i];
+  if(n===0){zero=true;}
+  else{
+   if(zero){res+='零';zero=false;}
+   let dn=d[n];
+   if(n===2&&(pos===2||pos===3||pos===4||pos===8))dn='两';
+   res+=dn+(u[pos]||'');
+  }
+  if((pos===4||pos===8)){
+   const higher=s.slice(0,i);
+   if(higher&&/[1-9]/.test(higher)&&!/万$|亿$/.test(res)){res+=(pos===8?'亿':'万');zero=false;}
+  }
+ }
+ return res.replace(/^一十/,'十');
+}
+function numToChinese(str){
+ if(str.includes('.')){
+  const [i,f]=str.split('.');
+  let r=i?numToChinese(i)+'点':'点';
+  for(const c of f)r+={'0':'零','1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','7':'七','8':'八','9':'九'}[c]||c;
+  return r;
+ }
+ const n=parseInt(str);
+ if(isNaN(n))return str;
+ return intToChinese(n);
+}
+function processNumbersAndUnits(text){
+ text=text.replace(/(\d+\.?\d*)\s*%/g,(m,n)=>'百分之'+numToChinese(n));
+ text=text.replace(/\$\s*(\d+\.?\d*)/g,(m,n)=>numToChinese(n)+'美元');
+ text=text.replace(/(\d+\.?\d*)\s*美元/g,(m,n)=>numToChinese(n)+'美元');
+ text=text.replace(/(\d+\.?\d*)\s*万/g,(m,n)=>numToChinese(n)+'万');
+ text=text.replace(/(\d+\.?\d*)\s*亿/g,(m,n)=>numToChinese(n)+'亿');
+ text=text.replace(/(\d+\.?\d*)\s*(km|kg|ml|cm|mm|min|h)\b/g,(m,n,u)=>{
+  const map={km:'公里',kg:'公斤',ml:'毫升',cm:'厘米',mm:'毫米',min:'分钟',h:'小时'};
+  return numToChinese(n)+map[u];
+ });
+ text=text.replace(/(\d+\.?\d*)\s*元/g,(m,n)=>numToChinese(n)+'元');
+ text=text.replace(/(\d+\.?\d*)\s*块/g,(m,n)=>numToChinese(n)+'块');
+ text=text.replace(/(\d+\.?\d*)/g,(m,n)=>numToChinese(n));
+ return text;
+}
+function chunkScript(text){
+ const frags=text.split(/[，,。！？!?；;、:：\n]+/).map(s=>s.trim()).filter(Boolean);
+ const out=[];let cur='';
+ for(const f of frags){
+  if(f.length>15){
+   if(cur){out.push(cur);cur='';}
+   const pieces=Math.ceil(f.length/15);
+   const size=Math.ceil(f.length/pieces);
+   for(let i=0;i<f.length;i+=size)out.push(f.slice(i,i+size));
+   continue;
+  }
+  if((cur?cur.length+1+f.length:f.length)<=15){cur=cur?cur+'，'+f:f;}
+  else{if(cur)out.push(cur);cur=f;}
+ }
+ if(cur)out.push(cur);
+ return out;
+}
+function buildProcessedScript(script,tone){
+ if(!script.trim())return '（请在左侧粘贴口播脚本）';
+ let work=processNumbersAndUnits(script);
+ let chunks=chunkScript(work);
+ const foundBrands=new Set();
+ const annotated=chunks.map(ch=>{
+  let line=ch;
+  for(const [en,zh] of Object.entries(BRANDS)){
+   if(line.includes(en)){foundBrands.add(en+' → '+zh);line=line.split(en).join(en+'（'+zh+'）');}
+  }
+  return line;
+ });
+ const T={
+  '沉稳信任':{p:'[serious]',c:'[warm]'},
+  '亲切活力':{p:'[smile]',c:'[smile]'},
+  '专业严谨':{p:'[serious]',c:'[serious]'},
+  '温暖':{p:'[warm]',c:'[warm]'}
+ }[tone]||{p:'[warm]',c:'[warm]'};
+ const dataRe=/[百千万亿点百分之美元公斤公里毫升厘米毫米分钟小时块]/;
+ const lines=annotated.map((c,i)=>{
+  let pre='';
+  if(i===0)pre+='[breath] ';
+  if(i>0&&i%4===0)pre+='[pause] ';
+  if(/[?？]/.test(c))pre+='[pause] ';
+  if(i>0&&dataRe.test(c))pre+='[pause] ';
+  let tag=(i===annotated.length-1)?T.c:T.p;
+  if(dataRe.test(c))tag='[serious]';
+  return pre+tag+' '+c;
+ });
+ let out=lines.join('\n');
+ const eng=[...new Set((script.match(/[A-Za-z]{2,}/g)||[]))];
+ const known=Object.keys(BRANDS);
+ const others=eng.filter(e=>!known.includes(e));
+ if(foundBrands.size||others.length){
+  out+='\n\n— 发音校对 —';
+  if(foundBrands.size)out+='\n已标注品牌：'+[...foundBrands].join('；');
+  if(others.length)out+='\n其他英文词（请查官方读音再录）：'+others.join('、');
+ }
+ return out;
+}
+function buildPlatform(look,lang,tone,lip){
+ const gender=/男/.test(look)?'男性':(/女/.test(look)?'女性':'（未指定，建议补全）');
+ const toneHint={'沉稳信任':'沉稳、低沉、偏慢','亲切活力':'明亮、上扬、节奏轻快','专业严谨':'平稳、清晰、断句明确','温暖':'柔和、亲切、尾音轻收'}[tone]||'自然';
+ const langVoice={'中文':'中文 zh-CN','英文':'English en-US','中日':'日语 ja-JP（可双语）'}[lang]||lang;
+ const lookRef=look.trim()||'（请在左侧填写形象描述）';
+ const heygen=[
+  '【HeyGen 设置建议】',
+  '· 形象：选 Photo-Real（照片级写实）数字人系列',
+  '· 形象参考：'+lookRef,
+  '· 性别 / 声音：'+gender+' voice，语种 '+langVoice+'，语气「'+toneHint+'」',
+  '· Stability（稳定性）：中等 50–65，过高发僵、过低跳变',
+  '· 口型同步：'+(lip?'开启（Lip-Sync On）':'关闭（仅做画外音时可关）'),
+  '· 渲染策略：逐句生成、每段独立出片，后期拼接（避免长文本口型漂移）',
+  '· 单段时长 < 30 秒；满意片段单独导出再剪辑'
+ ].join('\n');
+ const jimeng=[
+  '【即梦数字人 设置建议】',
+  '· 上传参考图锁定形象（'+lookRef+'）',
+  '· 语种：'+langVoice+'；语气：'+toneHint,
+  '· 口型同步：'+(lip?'开启':'关闭'),
+  '· 分段生成，每段 < 30 秒，长文本拆多条任务',
+  '· 满意片段单独导出再剪辑，降低重抽成本'
+ ].join('\n');
+ const drift=[
+  '【防漂移清单】',
+  '· 口型对不上 → 句子再切短（每句 ≤ 15 字），去掉连读长句',
+  '· 声音发机械 → 加情绪标签 [warm]/[serious]/[smile] 与 [pause]/[breath] 停顿',
+  '· 长文本漂移 → 单段控制在 30s 内，分段渲染后拼接',
+  '· 数字 / 单位 / 品牌名务必口播化（见左卡处理结果）'
+ ].join('\n');
+ return heygen+'\n\n'+jimeng+'\n\n'+drift;
+}
+function generate(){
+ const script=document.getElementById('f-script').value;
+ const look=document.getElementById('f-look').value;
+ const lang=document.getElementById('f-lang').value;
+ const tone=document.getElementById('f-tone').value;
+ const lip=document.getElementById('f-lipsync').checked;
+ document.getElementById('out-script').innerText=buildProcessedScript(script,tone);
+ document.getElementById('out-platform').innerText=buildPlatform(look,lang,tone,lip);
+}
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function init(){
+ ['f-script','f-look','f-lang','f-tone','f-lipsync'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('input',generate);
+  el.addEventListener('change',generate);
+ });
+ document.getElementById('btn-gen').addEventListener('click',generate);
+ document.getElementById('btn-copy-all').addEventListener('click',function(){
+  const all=['out-script','out-platform'].map(id=>document.getElementById(id).innerText).join('\n\n');
+  copyText(all,this);
+ });
+ document.querySelectorAll('.cbtn').forEach(b=>{
+  b.addEventListener('click',function(){
+   const key=this.dataset.copy;
+   copyText(document.getElementById('out-'+key).innerText,this);
+  });
+ });
+ generate();
+}
+init();
+</script>
+</body>
+</html>

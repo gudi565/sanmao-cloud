@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图像生成提示词工具</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:48px 0 32px;text-align:center} .header h1{font-size:32px;font-weight:700;letter-spacing:-.5px} .header .sub{font-size:15px;color:var(--t3);margin-top:8px}
+.container{max-width:1180px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start;padding-bottom:48px}
+.inputs{position:sticky;top:24px} .field{margin-bottom:14px} .field label{display:block;font-size:13px;font-weight:600;color:var(--t2);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-gen{width:100%;padding:10px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:10px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px} .card-tt{font-size:15px;font-weight:650}
+.cbtn{padding:3px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13.5px;line-height:1.65;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:24px 0 48px;text-align:center;font-size:13px;color:var(--t3)}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>图像生成提示词工具</h1><p class="sub">MJ / Flux / SDXL / 即梦 / Ideogram · 正向 + 负向 + 参数 · 防手部漂移</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="engine">引擎</label><select id="engine"></select></div>
+<div class="field"><label for="subject">主体</label><textarea id="subject" rows="3" placeholder="例如:一位穿红裙的女孩站在樱花树下 / a lone astronaut on a red planet"></textarea></div>
+<div class="field"><label for="style">风格</label><select id="style"></select></div>
+<div class="field"><label for="composition">构图</label><select id="composition"></select></div>
+<div class="field"><label for="lighting">光线</label><select id="lighting"></select></div>
+<div class="field"><label for="tone">色调</label><input id="tone" type="text" placeholder="例如:温暖橙红 / moody teal and amber"></div>
+<div class="field-row">
+<div class="field"><label for="ar">比例 (--ar)</label><select id="ar"></select></div>
+<div class="field"><label for="negative">负向</label><input id="negative" type="text" value="extra fingers, deformed hands, watermark, signature, text, lowres, blurry"></div>
+</div>
+<div class="field"><label for="versionNote">模型 / 版本备注 (可选)</label><input id="versionNote" type="text" placeholder="例如:v7 --style raw / FLUX.1-dev / SDXL 1.0 + refiner"></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">正向提示词</span><button class="cbtn" data-copy="pos">复制</button></div><div class="card-bd" id="out-pos"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">负向提示词</span><button class="cbtn" data-copy="neg">复制</button></div><div class="card-bd" id="out-neg"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">参数</span><button class="cbtn" data-copy="params">复制</button></div><div class="card-bd" id="out-params"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">引擎备注与防漂移</span><button class="cbtn" data-copy="notes">复制</button></div><div class="card-bd" id="out-notes"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">通用规则</span><button class="cbtn" data-copy="general">复制</button></div><div class="card-bd" id="out-general"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>同一主体多跑几版挑最佳 · 手部漂移写 "five intact fingers" · 负向永远别留空</p></div></footer>
+<script>
+const KB={
+  engines:[
+    {id:'mj',name:'Midjourney v7',dialect:'comma',lang:'en',ar_support:true,
+     weight_syntax:'v7 懂自然语言;权重用 --stylize / --chaos 间接控制,不再支持 :: 权重',
+     negative_location:'--no',
+     drift_risks:['手部漂移(写 five intact fingers,正向末尾保留不被截断)','多人易崩(指定确切人数 + 每人位置,如 two people one left one right)','文字弱(v7 改善但仍不稳,贴字建议改用 Ideogram)'],
+     tips:['主体在前、风格在中、构图光线在后','--ar 必带(默认 1:1)','--style raw 降艺术滤镜、更写实','--stylize 0-1000(越高"MJ 味"越浓,写实建议 50-150)','--chaos 0-100(越高变体越野)','负向全部塞进 --no,逗号分隔,勿用冒号','v7 能读自然语言长句,不必硬堆逗号']},
+    {id:'flux',name:'Flux 1.1 Pro',dialect:'natural',lang:'en',ar_support:'dim',
+     weight_syntax:'描述性长句为主;部分接口支持 (token:1.3) 但 Flux 对权重不敏感,靠改写句子提权',
+     negative_location:'separate',
+     drift_risks:['手部偶错(正向写明 five fingers per hand)','细节堆太多易糊(控制句子长度,少用 4k/masterpiece 陈词)','文字渲染 Flux 支持不错,但仍不如 Ideogram 精准'],
+     tips:['写一个完整、具体的描述性句子','主体 + 环境 + 光线 + 氛围一气呵成','少堆词,避免 4k masterpiece trending 陈词','负向单独字段(Flux 1.1 Pro 部分接口支持 negative prompt)','比例用尺寸:1:1→1024x1024,16:9→1344x768']},
+    {id:'sdxl',name:'Stable Diffusion XL',dialect:'natural',lang:'en',ar_support:'dim',
+     weight_syntax:'(word:1.2) 权重;SDXL 对权重敏感,关键锚点用权重强化',
+     negative_location:'separate',
+     drift_risks:['手部易崩(权重强化 (five intact fingers:1.2),负向加 (deformed hands:1.4))','多人(指定确切人数 + 相对位置)','文字基本不可靠,不要依赖 SDXL 出文字','SDXL 默认偏插画/3D,写实需加 photographic / sharp focus'],
+     tips:['自然语言为主,关键关键词用 (word:1.3) 提权','负向必填,否则手指/低质泛滥','比例用尺寸:1:1→1024x1024,16:9→1344x768','CFG 5-7,步数 25-35','写实加 photographic, sharp focus;插画加 illustration, trending on artstation']},
+    {id:'jimeng',name:'即梦',dialect:'natural',lang:'zh',ar_support:true,
+     weight_syntax:'中文自然语言;参考图加权重视觉一致性,首图权重高',
+     negative_location:'separate',
+     drift_risks:['手部(中文正向写 五根手指完整、结构准确)','多人(用中文指定确切人数 + 位置)','中文语境理解好;若主体写英文可先翻成中文再喂'],
+     tips:['用中文描述,自然流畅','主体 + 风格 + 构图 + 光线 + 氛围完整','负向用中文一行','比例在界面选择(1:1/16:9/9:16/3:4/4:3)','支持参考图,首图权重高时贴参考图保持一致']},
+    {id:'ideogram',name:'Ideogram',dialect:'natural',lang:'en',ar_support:true,
+     weight_syntax:'自然语言;画面文字必须用引号 "TEXT" 强调,开启 Magic Prompt 自动增强',
+     negative_location:'separate',
+     drift_risks:['手部(正向写 five fingers per hand)','文字渲染是强项,但必须用引号包住要渲染的字','复杂排版需指定字体风格(font style)'],
+     tips:['需要画面文字时用引号:text reading "HELLO"','开启 Magic Prompt 自动增强拼写','比例在界面选','负向单独字段,加 misspelled words, gibberish 防乱码','擅长海报/Logo/排版类场景']}
+  ],
+  styles:{
+    '油画':{en:'oil painting, thick impasto brushstrokes, rich textures, oil on canvas, classical fine art',zh:'油画,厚重笔触,丰富肌理,古典艺术'},
+    '水彩':{en:'watercolor painting, soft washes, wet-on-wet technique, translucent gradients, delicate',zh:'水彩,柔和晕染,湿画法,通透渐变'},
+    '摄影写实':{en:'photorealistic photography, 85mm lens, shallow depth of field, sharp focus, cinematic',zh:'摄影写实,85mm镜头,浅景深,锐利对焦,电影感'},
+    '赛博朋克':{en:'cyberpunk, neon lights, dystopian city, rain-slicked streets, holographic glow',zh:'赛博朋克,霓虹灯光,反乌托邦城市,雨后街道,全息光效'},
+    '极简矢量':{en:'minimalist vector illustration, flat design, clean geometric lines, limited palette',zh:'极简矢量插画,扁平设计,干净几何线条'},
+    '吉卜力':{en:'Studio Ghibli style, hand-drawn animation, soft watercolor backgrounds, whimsical, warm',zh:'吉卜力风格,手绘动画,柔和水彩背景,温暖治愈'},
+    '厚涂概念艺术':{en:'digital concept art, matte painting, thick paint, dramatic lighting, ArtStation trending',zh:'数字概念艺术,厚涂,电影级光影,细节丰富'},
+    '胶片质感':{en:'35mm film photography, Kodak Portra 400, fine grain, vintage analog, faded warm colors',zh:'胶片摄影,柯达 Portra,细腻颗粒,复古质感'},
+    '超现实':{en:'surrealism, dreamlike, impossible geometry, ethereal atmosphere, Salvador Dali inspired',zh:'超现实,梦幻,不可能的几何,空灵氛围'}
+  },
+  compositions:{
+    '居中对称':{en:'centered symmetric composition',zh:'居中对称构图'},
+    '三分法':{en:'rule of thirds composition',zh:'三分法构图'},
+    '低角度仰视':{en:"low angle worm's-eye view, looking up",zh:'低角度仰视'},
+    '俯视':{en:"top-down bird's-eye view, overhead shot",zh:'俯视鸟瞰'},
+    '特写':{en:'close-up shot, macro framing',zh:'特写镜头'},
+    '黄金螺旋':{en:'golden spiral composition, dynamic balance',zh:'黄金螺旋构图'}
+  },
+  lighting:{
+    '自然光':{en:'soft natural daylight',zh:'自然柔光'},
+    '黄金时刻':{en:'golden hour warm sunlight',zh:'黄金时刻暖光'},
+    '蓝调时刻':{en:'blue hour cool twilight',zh:'蓝调时刻冷光'},
+    '影棚布光':{en:'studio lighting, three-point softbox setup',zh:'影棚三点布光'},
+    '体积光':{en:'volumetric lighting, god rays, light shafts',zh:'体积光,丁达尔光束'},
+    '逆光':{en:'backlighting, rim light, glowing silhouette',zh:'逆光,轮廓光'},
+    '伦勃朗光':{en:'Rembrandt lighting, dramatic chiaroscuro',zh:'伦勃朗光,明暗对比'},
+    '霓虹光':{en:'neon glow, colorful ambient light',zh:'霓虹光,彩色环境光'},
+    '阴天柔光':{en:'overcast diffused soft light',zh:'阴天漫射柔光'}
+  },
+  arMap:{
+    '1:1':{mj:'1:1',dim:'1024x1024',jimeng:'1:1',ideo:'1x1'},
+    '16:9':{mj:'16:9',dim:'1344x768',jimeng:'16:9',ideo:'16x9'},
+    '9:16':{mj:'9:16',dim:'768x1344',jimeng:'9:16',ideo:'9x16'},
+    '3:2':{mj:'3:2',dim:'1216x832',jimeng:'3:2',ideo:'3x2'},
+    '21:9':{mj:'21:9',dim:'1536x640',jimeng:'21:9',ideo:'21x9'}
+  }
+};
+
+function el(id){return document.getElementById(id);}
+function val(id){return el(id).value;}
+function getEngine(id){return KB.engines.find(function(e){return e.id===id;});}
+
+function ctx(){
+  return {
+    subject:val('subject').trim()||'a serene landscape',
+    style:val('style'),
+    composition:val('composition'),
+    lighting:val('lighting'),
+    tone:val('tone').trim(),
+    ar:val('ar'),
+    negative:val('negative').trim()||'extra fingers, deformed hands, watermark, signature, text, lowres, blurry',
+    versionNote:val('versionNote').trim()
+  };
+}
+
+function buildNegative(engine,c){
+  const base=c.negative;
+  if(engine.id==='mj')return base;
+  if(engine.id==='flux')return base+', mutated, disfigured, extra limbs, bad hands';
+  if(engine.id==='sdxl')return base+', (deformed hands:1.4), (extra fingers:1.4), (bad anatomy:1.3), jpeg artifacts, cloned face';
+  if(engine.id==='jimeng')return '多余手指、畸形手、水印、签名、文字错乱、低分辨率、模糊、变形、多余肢体、克隆人脸';
+  if(engine.id==='ideogram')return base+', misspelled words, gibberish, garbled text, extra fingers';
+  return base;
+}
+
+function buildPositive(engine,c){
+  const st=KB.styles[c.style]||KB.styles['摄影写实'];
+  const cp=KB.compositions[c.composition]||KB.compositions['居中对称'];
+  const lt=KB.lighting[c.lighting]||KB.lighting['自然光'];
+  const tone=c.tone;
+  if(engine.id==='mj'){
+    const handTag='five intact fingers';
+    const toks=[c.subject,st.en,cp.en,lt.en];
+    if(tone)toks.push(tone);
+    let body=toks.filter(Boolean).join(', ');
+    const budget=200-(handTag.length+2);
+    if(body.length>budget)body=body.slice(0,budget-3)+'...';
+    let p=body+', '+handTag;
+    const ar=(KB.arMap[c.ar]||KB.arMap['1:1']).mj;
+    const neg=buildNegative(engine,c);
+    p+=' --ar '+ar+' --style raw --stylize 250 --chaos 10 --no '+neg;
+    return p;
+  }
+  if(engine.id==='flux'){
+    const parts=[c.subject,st.en,cp.en,lt.en];
+    if(tone)parts.push(tone+' mood');
+    let p=parts.filter(Boolean).join(', ');
+    p=p.charAt(0).toUpperCase()+p.slice(1)+'.';
+    p+=' Five fingers per hand, anatomically correct hands.';
+    return p;
+  }
+  if(engine.id==='sdxl'){
+    const parts=[c.subject,st.en,cp.en,lt.en];
+    if(tone)parts.push(tone);
+    let p=parts.join(', ')+', (highly detailed:1.2), (sharp focus:1.3), (five intact fingers:1.2)';
+    return p;
+  }
+  if(engine.id==='jimeng'){
+    let p='一幅'+st.zh+'作品,画面主体为'+c.subject+',采用'+cp.zh+','+lt.zh;
+    if(tone)p+=','+tone+'的色调氛围';
+    p+='。人物手部五根手指完整、结构准确。';
+    return p;
+  }
+  if(engine.id==='ideogram'){
+    const parts=[c.subject,st.en,cp.en,lt.en];
+    if(tone)parts.push(tone);
+    let p=parts.filter(Boolean).join(', ');
+    if(c.subject.indexOf('"')>=0){
+      p+='. Render the quoted text exactly as written, clean legible typography, correct spelling.';
+    }
+    p+=' Five fingers per hand.';
+    return p;
+  }
+  return '';
+}
+
+function buildParams(engine,c){
+  const ar=KB.arMap[c.ar]||KB.arMap['1:1'];
+  const note=c.versionNote?('备注: '+c.versionNote):'';
+  let lines=[];
+  if(engine.id==='mj'){
+    lines=['--ar '+ar.mj,'--style raw  (降艺术滤镜,偏写实)','--stylize 250  (范围 0-1000,写实建议 50-150)','--chaos 10  (范围 0-100,越高变体越野)','--no <负向>  (负向全部塞这里,逗号分隔,勿用冒号)'];
+  }else if(engine.id==='flux'){
+    lines=['尺寸: '+ar.dim+'  (对应 '+c.ar+')','guidance: 3.5  (范围 1-4,Flux 偏低)','steps: 28','负向: 单独 negative 字段 (1.1 Pro 部分接口支持)','权重: Flux 对 (word:1.3) 不敏感,靠改写句子提权'];
+  }else if(engine.id==='sdxl'){
+    lines=['尺寸: '+ar.dim+'  (对应 '+c.ar+',SDXL 必须接近 1024²)','steps: 30  (范围 25-35)','CFG: 7  (范围 5-8)','sampler: DPM++ 2M Karras','权重示例: (five intact fingers:1.2) (sharp focus:1.3)','refiner: 可选,0.1-0.3 接力'];
+  }else if(engine.id==='jimeng'){
+    lines=['比例: '+ar.jimeng+'  (界面内选择)','模型: 即梦 2.1 / 3.0 (按需切换)','参考图: 可上传,首图权重高时主体一致性强','生成数量: 多张对比挑选'];
+  }else if(engine.id==='ideogram'){
+    lines=['aspect ratio: '+ar.ideo,'model: Ideogram V2','Magic Prompt: 开启 (自动增强文字描述)','style: 通用 / 写实 / 动画 / 3D','负向: 单独字段,加 misspelled words, gibberish'];
+  }
+  if(note)lines.push(note);
+  return lines.join('\n');
+}
+
+function buildNotes(engine,c){
+  const tips=engine.tips.map(function(t){return '· '+t;}).join('\n');
+  const risks=engine.drift_risks.map(function(r){return '· '+r;}).join('\n');
+  const txtTip=engine.id==='ideogram'?'用引号强调 "TEXT",拼写最强':'弱,贴字建议改用 Ideogram';
+  return '【'+engine.name+' 特性】\n'+tips+'\n\n【常见漂移与对策】\n'+risks+
+    '\n\n【通用防漂移】\n· 手部:写 "five intact fingers" / "五根手指完整"\n· 多人:指定确切人数 + 每人位置 (如 two people, one left one right)\n· 文字:'+txtTip+'\n· 别堆砌 "4k masterpiece trending on artstation" 陈词';
+}
+
+const GENERAL='【结构顺序】主体在前 → 风格在中 → 光线 / 构图 / 色调在后 → 负向收尾。\n'+
+'【负向】永远别留空。SDXL 尤其依赖负向压手指 / 低质;MJ 把负向塞进 --no。\n'+
+'【手部】通用保险词:"five intact fingers";中文:"五根手指完整、结构准确"。\n'+
+'【多人】崩图高发:写明人数 (如 "three people") + 相对位置 + 朝向。\n'+
+'【文字】需画面文字 → Ideogram 最强;MJ v7 改善但仍弱;SDXL 基本不可靠。\n'+
+'【陈词】避免堆 "4k, 8k, masterpiece, trending, best quality, highly detailed" 等无效增益词,精炼描述更好。\n'+
+'【多跑挑选】同一提示词重抽 4-8 版,挑细节最稳的,再针对局部加权重微调。\n'+
+'【句式】描述性引擎 (Flux / 即梦) 用完整句子,词袋引擎 (MJ / SDXL) 用逗号词组。';
+
+function generate(){
+  const engine=getEngine(val('engine'))||KB.engines[0];
+  const c=ctx();
+  el('out-pos').textContent=buildPositive(engine,c);
+  let negTxt=buildNegative(engine,c);
+  if(engine.id==='mj')negTxt=negTxt+'\n\n(已折叠进正向提示词的 --no 参数)';
+  el('out-neg').textContent=negTxt;
+  el('out-params').textContent=buildParams(engine,c);
+  el('out-notes').textContent=buildNotes(engine,c);
+  el('out-general').textContent=GENERAL;
+}
+
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const done=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>{fallbackCopy(text);done()})}else{fallbackCopy(text);done()}}
+function copyAll(){
+  const parts=[
+    '【正向提示词】\n'+el('out-pos').textContent,
+    '\n\n【负向提示词】\n'+el('out-neg').textContent,
+    '\n\n【参数】\n'+el('out-params').textContent,
+    '\n\n【引擎备注与防漂移】\n'+el('out-notes').textContent,
+    '\n\n【通用规则】\n'+el('out-general').textContent
+  ];
+  copyText(parts.join(''),el('btn-copy-all'));
+}
+
+function init(){
+  const esel=el('engine');
+  KB.engines.forEach(function(e){const o=document.createElement('option');o.value=e.id;o.textContent=e.name;esel.appendChild(o);});
+  const fill=function(sid,obj){const s=el(sid);Object.keys(obj).forEach(function(k){const o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o);});};
+  fill('style',KB.styles);
+  fill('composition',KB.compositions);
+  fill('lighting',KB.lighting);
+  const arsel=el('ar');Object.keys(KB.arMap).forEach(function(k){const o=document.createElement('option');o.value=k;o.textContent=k;arsel.appendChild(o);});
+  el('style').value='摄影写实';
+  el('composition').value='三分法';
+  el('lighting').value='黄金时刻';
+  el('ar').value='16:9';
+  ['engine','subject','style','composition','lighting','tone','ar','negative','versionNote'].forEach(function(id){const n=el(id);n.addEventListener('change',generate);n.addEventListener('input',generate);});
+  el('btn-gen').addEventListener('click',generate);
+  el('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(b){b.addEventListener('click',function(){const key=b.getAttribute('data-copy');copyText(el('out-'+key).textContent,b);});});
+  generate();
+}
+init();
+</script>
+</body>
+</html>

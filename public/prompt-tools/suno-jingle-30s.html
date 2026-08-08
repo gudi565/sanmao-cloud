@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suno 30 秒品牌 jingle</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+.check-row{display:flex;align-items:center;gap:8px}
+.check-row input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+.check-row label{font-size:13px;font-weight:500;color:var(--text);cursor:pointer;margin:0}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>Suno 30 秒品牌 jingle</h1><p class="sub">短 prompt · 品牌 + 情绪 + 曲风</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field">
+    <label for="brand">品牌词 / 产品</label>
+    <textarea id="brand" rows="3" placeholder="例:清新蜜柚 / 一句卖点也可写在这里"></textarea>
+  </div>
+  <div class="field">
+    <label for="mood">情绪</label>
+    <select id="mood">
+      <option value="欢快洗脑">欢快洗脑</option>
+      <option value="温暖治愈">温暖治愈</option>
+      <option value="酷感节拍">酷感节拍</option>
+      <option value="信任稳重">信任稳重</option>
+      <option value="惊喜跳跃">惊喜跳跃</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="genre">曲风</label>
+    <select id="genre">
+      <option value="electropop">electropop</option>
+      <option value="nu-disco">nu-disco</option>
+      <option value="acoustic pop">acoustic pop</option>
+      <option value="lo-fi whistle">lo-fi whistle</option>
+      <option value="合唱颂歌">合唱颂歌</option>
+      <option value="house">house</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="voice">人声</label>
+    <select id="voice">
+      <option value="女声">女声</option>
+      <option value="男声">男声</option>
+      <option value="童声">童声</option>
+      <option value="纯器乐">纯器乐</option>
+    </select>
+  </div>
+  <div class="field">
+    <div class="check-row">
+      <input type="checkbox" id="singBrand" checked>
+      <label for="singBrand">唱出品牌名</label>
+    </div>
+  </div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">Style 标签</span><button class="cbtn" data-copy="style">复制</button></div>
+    <div class="card-bd" id="out-style"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">Prompt + Lyrics</span><button class="cbtn" data-copy="prompt">复制</button></div>
+    <div class="card-bd" id="out-prompt"></div>
+  </div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>Suno 默认会拖长,务必保留 "under 30 seconds" 与负向标签;多生成几次,挑最短最洗脑的那一版。</p></div></footer>
+<script>
+var KB = {
+  mood: {
+    '欢快洗脑': {en: 'upbeat, catchy, earworm, bright'},
+    '温暖治愈': {en: 'warm, gentle, soothing, heartfelt'},
+    '酷感节拍': {en: 'cool, groovy, sleek, confident'},
+    '信任稳重': {en: 'steady, sincere, warm, grounded'},
+    '惊喜跳跃': {en: 'playful, bouncy, energetic, fun'}
+  },
+  moodHook: {
+    '欢快洗脑': '天天开心',
+    '温暖治愈': '暖暖的心',
+    '酷感节拍': '够酷够型',
+    '信任稳重': '放心可靠',
+    '惊喜跳跃': '惊喜不断'
+  },
+  genre: {
+    'electropop': 'electropop',
+    'nu-disco': 'nu-disco',
+    'acoustic pop': 'acoustic pop',
+    'lo-fi whistle': 'lo-fi whistle',
+    '合唱颂歌': 'anthemic choir',
+    'house': 'house'
+  },
+  voice: {
+    '女声': 'female vocal',
+    '男声': 'male vocal',
+    '童声': 'child vocal, kids choir',
+    '纯器乐': 'instrumental'
+  }
+};
+
+function buildStyle(){
+  var mood = document.getElementById('mood').value;
+  var genre = document.getElementById('genre').value;
+  var voice = document.getElementById('voice').value;
+  var pos = [];
+  pos.push(KB.genre[genre]);
+  pos.push(KB.mood[mood].en);
+  if(voice !== '纯器乐'){ pos.push(KB.voice[voice]); }
+  pos.push('under 30 seconds, short jingle, punchy, catchy hook, commercial, ends with brand name');
+  if(voice === '纯器乐'){ pos.push('instrumental, no vocals'); }
+  var neg = ['no long intro', 'no drop', 'no rap', 'no extended solo', 'no fade out'];
+  return pos.join(', ') + ', ' + neg.join(', ');
+}
+
+function buildPrompt(){
+  var brand = (document.getElementById('brand').value.trim() || '你的品牌');
+  var mood = document.getElementById('mood').value;
+  var voice = document.getElementById('voice').value;
+  var singBrand = document.getElementById('singBrand').checked;
+  var isInstr = (voice === '纯器乐');
+  var hook = KB.moodHook[mood];
+  var s = '';
+  s += '=== Suno Custom Mode 设置 ===\n';
+  s += '• Style: 粘贴【Style 标签】卡片内容\n';
+  s += '• Lyrics: 粘贴下方歌词\n';
+  s += '• Instrumental: ' + (isInstr ? 'ON' : 'OFF') + (isInstr ? '' : '(保留人声)') + '\n';
+  s += '• Title: ' + brand + ' Jingle (15s)\n\n';
+  s += '=== 结构 / Structure ===\n';
+  s += '[Intro 2s] 极短乐器引入,一拍即进 Hook\n';
+  if(isInstr){
+    s += '[Hook] 标志性旋律动机,反复 2 遍\n';
+  } else if(singBrand){
+    s += '[Hook] 唱出品牌名 "' + brand + '",钩子句反复\n';
+  } else {
+    s += '[Hook] 朗朗上口钩子句,反复 2 遍(不唱品牌名)\n';
+  }
+  if(!isInstr){ s += '[Spoken] 念白口号 + 品牌名\n'; }
+  s += '[Outro] 品牌名收尾,干净利落结束\n';
+  s += '⚠ 防漂移:Style 里务必保留 "under 30 seconds, short, punchy, jingle, ends with brand name",Suno 才不会拖成 2 分钟。\n\n';
+  s += '=== 歌词 / Lyrics(直接粘贴到 Suno Lyrics 框)===\n\n';
+  s += '[Intro]\n';
+  s += '(short instrumental hit, 2 seconds)\n\n';
+  s += '[Hook]\n';
+  if(isInstr){
+    s += '(melodic motif, repeat x2)\n';
+    s += '(brass stab) ' + brand + '!\n';
+  } else if(singBrand){
+    s += brand + '! ' + brand + '!\n';
+    s += hook + ' 就选 ' + brand + '\n';
+    s += brand + '! ' + brand + '!\n';
+    s += '[替换为你的一句卖点]\n';
+  } else {
+    s += hook + ' ' + hook + '!\n';
+    s += '好心情 每一天!\n';
+    s += hook + ' ' + hook + '!\n';
+    s += '[替换为你的一句卖点]\n';
+  }
+  s += '\n';
+  if(!isInstr){
+    s += '[Spoken]\n';
+    s += '(' + brand + ' — [替换为你的口号 / 品牌定位])\n\n';
+  }
+  s += '[Outro]\n';
+  s += brand + '~ (clean ending)';
+  return s;
+}
+
+function generate(){
+  document.getElementById('out-style').textContent = buildStyle();
+  document.getElementById('out-prompt').textContent = buildPrompt();
+}
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function copyAll(){copyText(['【Style 标签】',document.getElementById('out-style').textContent,'','【Prompt + Lyrics】',document.getElementById('out-prompt').textContent].join('\n'),document.getElementById('btn-copy-all'))}
+
+function init(){
+  var fields = document.querySelectorAll('#brand,#mood,#genre,#voice,#singBrand');
+  fields.forEach(function(el){
+    var evt = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(evt, generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click', generate);
+  document.getElementById('btn-copy-all').addEventListener('click', copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.getAttribute('data-copy');
+      var el = document.getElementById('out-' + key);
+      copyText(el.textContent, btn);
+    });
+  });
+  generate();
+}
+init();
+</script>
+</body>
+</html>

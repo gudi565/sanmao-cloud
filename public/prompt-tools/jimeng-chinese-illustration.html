@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>即梦 国风插画 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>即梦 国风插画 prompt</h1><p class="sub">即梦 · 水墨/工笔/岩彩 · 中文</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="theme">主题</label><textarea id="theme" rows="2" placeholder="月下孤鹤立于残荷之上">月下孤鹤立于残荷之上</textarea></div>
+<div class="field"><label for="huafa">画法</label><select id="huafa"><option>水墨写意</option><option>工笔重彩</option><option>岩彩</option><option>青绿山水</option><option>敦煌壁画风</option><option>版画木刻</option></select></div>
+<div class="field"><label for="goutu">构图</label><select id="goutu"><option>留白意境</option><option>对称法度</option><option>长卷散点</option><option>团扇圆形</option></select></div>
+<div class="field"><label for="secdiao">色调</label><input id="secdiao" type="text" placeholder="赭石+花青,淡金点缀" value="赭石、花青，淡金点缀"></div>
+<div class="field"><label for="chaodai">朝代 / 气息</label><select id="chaodai"><option>唐雍容</option><option>宋清雅</option><option>魏晋风骨</option><option>明简淡</option></select></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">中文 Prompt</span><button class="cbtn" data-copy="prompt">复制</button></div><div class="card-bd" id="out-prompt"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">参考与防漂移</span><button class="cbtn" data-copy="ref">复制</button></div><div class="card-bd" id="out-ref"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>即梦吃中文描述，别堆英文陈词；人物越少越稳。</p></div></footer>
+<script>
+const $=id=>document.getElementById(id.startsWith('#')?id.slice(1):id);
+const KB={
+  huafa:{
+    '水墨写意':{tex:'墨分五色、皴擦点染、笔走龙蛇、干湿浓淡相宜',ref:'可参考张大千泼墨、齐白石写意、八大山人'},
+    '工笔重彩':{tex:'勾勒精细、三矾九染、矿物颜料设色厚重、线条挺劲',ref:'可参考林风眠重彩、于非闇工笔、张大千工笔'},
+    '岩彩':{tex:'矿物颜料厚涂、颗粒粗砂肌理、金箔银箔剥落感、材质粗砺',ref:'可参考敦煌岩彩、当代岩彩画矿物色用法'},
+    '青绿山水':{tex:'大青绿设色、金碧辉映、石青石绿层层罩染、勾金提彩',ref:'可参考李思训、展子虔、张大千青绿山水'},
+    '敦煌壁画风':{tex:'斑驳剥落、矿物颜料氧化发暗、飞天飘举、沥粉贴金、岁月侵蚀感',ref:'可参考张大千临摹敦煌、莫高窟盛唐壁画'},
+    '版画木刻':{tex:'刀法凌厉、黑白对比强烈、留白镂空、阳刻阴刻相间、线条拙朴',ref:'可参考古元木刻、鲁迅倡导的新兴木刻运动'}
+  },
+  goutu:{
+    '留白意境':'计白当黑、虚实相生',
+    '对称法度':'左右对称、法度森严',
+    '长卷散点':'散点透视、移步换景',
+    '团扇圆形':'圆形纨扇式构图、外圆内蕴'
+  }
+};
+function build(){
+  const t=$('#theme').value.trim()||'山水小品';
+  const hf=$('#huafa').value;
+  const g=$('#goutu').value;
+  const sd=$('#secdiao').value.trim()||'画家自由发挥';
+  const cd=$('#chaodai').value;
+  const H=KB.huafa[hf],G=KB.goutu[g];
+  const prompt='一幅'+hf+'风格的「'+t+'」，'+G+'，色调以'+sd+'为主，气息'+cd+'，'+H.tex+'，高细节，大师级作品。';
+  const peopleRe=/人|客|女|童|士|僧|仙|仕|游|渔|农|夫|骑|舞|肖像|美人|仕女|老者|少年/;
+  const peopleHint=peopleRe.test(t)?'当前主题含人物，即梦多人场景易崩，建议聚焦单人造像、半身或背影，避免群像。':'主题以景、物、禽鸟花石为主，少人无人更稳。';
+  const ref=H.ref+'。即梦对中文理解较好，直接用中文描述即可，无需混入英文。避免堆砌“4k, masterpiece, best quality, ultra detailed”等英文陈词——会冲淡国风韵味、让画面塑料化。'+peopleHint;
+  return {prompt:prompt,ref:ref};
+}
+function generate(){const r=build();$('#out-prompt').textContent=r.prompt;$('#out-ref').textContent=r.ref;}
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){const o=btn.textContent;const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function copyAll(){copyText(['【中文 Prompt】','',$('#out-prompt').textContent,'','【参考与防漂移】','',$('#out-ref').textContent].join('\n'),$('#btn-copy-all'))}
+function init(){
+  ['theme','huafa','goutu','secdiao','chaodai'].forEach(function(id){const el=$('#'+id);el.addEventListener('input',generate);el.addEventListener('change',generate);});
+  $('#btn-gen').addEventListener('click',generate);
+  $('#btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(b){b.addEventListener('click',function(){copyText($('#out-'+b.getAttribute('data-copy')).textContent,b);});});
+  generate();
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

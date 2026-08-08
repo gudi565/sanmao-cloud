@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>语音 / 配音提示词工具</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:48px 0 32px;text-align:center} .header h1{font-size:32px;font-weight:700;letter-spacing:-.5px} .header .sub{font-size:15px;color:var(--t3);margin-top:8px}
+.container{max-width:1180px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start;padding-bottom:48px}
+.inputs{position:sticky;top:24px} .field{margin-bottom:14px} .field label{display:block;font-size:13px;font-weight:600;color:var(--t2);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-gen{width:100%;padding:10px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:10px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px} .card-tt{font-size:15px;font-weight:650}
+.cbtn{padding:3px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13.5px;line-height:1.65;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:24px 0 48px;text-align:center;font-size:13px;color:var(--t3)}
+input[type=range]{padding:0;border:none}
+.range-wrap{display:flex;align-items:center;gap:10px}
+.range-wrap input[type=range]{flex:1}
+.range-wrap .sval{font-size:13px;color:var(--t2);min-width:46px;text-align:right;font-variant-numeric:tabular-nums}
+.field label.chk{display:flex;align-items:center;gap:8px}
+.field label.chk input{width:auto;padding:0;border:none}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>语音 / 配音提示词工具</h1><p class="sub">ElevenLabs / Fish Audio / CosyVoice / GPT-SoVITS · 音色 + 情绪 + 干净可朗读脚本</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field">
+    <label for="engine">引擎</label>
+    <select id="engine"></select>
+  </div>
+  <div class="field">
+    <label for="script">旁白文本（脚本）</label>
+    <textarea id="script" rows="5" placeholder="粘贴要合成语音的文本…"></textarea>
+  </div>
+  <div class="field">
+    <label for="voice">音色</label>
+    <select id="voice"></select>
+  </div>
+  <div class="field">
+    <label for="emotion">情绪</label>
+    <select id="emotion"></select>
+  </div>
+  <div class="field">
+    <label for="speed">语速（慢 / 中 / 快）</label>
+    <div class="range-wrap">
+      <input type="range" id="speed" min="0.7" max="1.5" step="0.05" value="1.0">
+      <span class="sval" id="speedval">1.00x</span>
+    </div>
+  </div>
+  <div class="field">
+    <label for="annotate" class="chk"><input type="checkbox" id="annotate" checked><span>停顿与重音（自动生成 SSML 停顿 + 演绎提示）</span></label>
+  </div>
+  <div class="field">
+    <label for="accent">口音 / 语种</label>
+    <select id="accent"></select>
+  </div>
+  <div class="field">
+    <label for="usecase">用途</label>
+    <select id="usecase"></select>
+  </div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+
+  <div class="card"><div class="card-hd"><span class="card-tt">音色设定</span><button class="cbtn" data-copy="voice">复制</button></div><div class="card-bd" id="out-voice"></div></div>
+  <div class="card"><div class="card-hd"><span class="card-tt">处理后脚本</span><button class="cbtn" data-copy="script">复制</button></div><div class="card-bd" id="out-script"></div></div>
+  <div class="card"><div class="card-hd"><span class="card-tt">引擎参数</span><button class="cbtn" data-copy="params">复制</button></div><div class="card-bd" id="out-params"></div></div>
+  <div class="card"><div class="card-hd"><span class="card-tt">引擎备注与防漂移</span><button class="cbtn" data-copy="drift">复制</button></div><div class="card-bd" id="out-drift"></div></div>
+  <div class="card"><div class="card-hd"><span class="card-tt">通用规则</span><button class="cbtn" data-copy="general">复制</button></div><div class="card-bd" id="out-general"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>数字写全、缩写展开、分段生成再拼 —— 配音的坑一半在文本预处理。</p></div></footer>
+<script>
+var KB={
+  engines:[
+    {id:'elevenlabs',name:'ElevenLabs',dialect:'en',ssml:true,clone:true},
+    {id:'fish',name:'Fish Audio',dialect:'zh',ssml:false,clone:true},
+    {id:'cosyvoice',name:'CosyVoice（阿里）',dialect:'zh',ssml:false,clone:true},
+    {id:'sovits',name:'GPT-SoVITS',dialect:'zh',ssml:false,clone:true}
+  ],
+  voices:{
+    '成熟男声':{en:'mature adult male, deep resonant baritone, age 40s, full-bodied chest voice',zh:'成熟男性，沉稳浑厚男中音，约四十岁，胸腔共鸣饱满'},
+    '年轻女声':{en:'young adult female, bright clear voice, age 20s, light and crisp',zh:'年轻女性，清亮明朗，约二十多岁，轻盈清晰'},
+    '儿童':{en:'child voice, age 8 to 10, playful lively and innocent',zh:'儿童嗓音，约八到十岁，天真活泼'},
+    '老年':{en:'elderly voice, age 70s, weathered wise and steady, slightly raspy',zh:'老年嗓音，约七十岁，沧桑沉稳，略带沙哑'},
+    '中性播音':{en:'neutral broadcast voice, professional announcer, clear balanced and articulate',zh:'中性播音腔，专业播音员，清晰均衡'},
+    '磁性广告男声':{en:'magnetic male voice, confident commercial tone, warm persuasive and polished',zh:'磁性男声，自信广告腔，富有说服力，质感精致'},
+    '温柔纪录片女声':{en:'gentle female voice, warm documentary narrator, soothing reflective and intimate',zh:'温柔女声，纪录片旁白，温暖舒缓，娓娓道来'},
+    '角色-反派':{en:'villain character voice, dark menacing tone, sinister low and chilling',zh:'反派角色音色，阴沉危险，富有压迫感'},
+    '角色-助手':{en:'friendly AI assistant voice, helpful approachable, bright and upbeat',zh:'助手角色音色，友善亲切，明亮积极'}
+  },
+  emotions:{
+    '平静陈述':{en:'calm and composed delivery, measured neutral tone',zh:'平静从容，平稳陈述'},
+    '激动':{en:'excited and energetic, passionate enthusiastic delivery',zh:'激动兴奋，充满热情'},
+    '悲伤低沉':{en:'sad and somber, melancholic low and heavy tone',zh:'悲伤低沉，忧郁沉重'},
+    '欢快':{en:'cheerful and upbeat, joyful lively delivery',zh:'欢快明朗，愉悦活泼'},
+    '紧张':{en:'tense and suspenseful, anxious urgent delivery',zh:'紧张急迫，悬疑感'},
+    '神秘耳语':{en:'mysterious whispering, enigmatic hushed and intimate tone',zh:'神秘耳语，低沉呢喃'},
+    '严肃权威':{en:'serious and authoritative, commanding firm and dignified tone',zh:'严肃权威，沉稳有力'},
+    '温暖安慰':{en:'warm and comforting, soothing gentle and tender delivery',zh:'温暖安慰，柔和抚慰'}
+  },
+  accents:{
+    '中文普通话':{en:'Mandarin Chinese accent, standard putonghua',zh:'普通话'},
+    '粤语':{en:'Cantonese accent',zh:'粤语'},
+    '英文美式':{en:'American English accent, general American',zh:'美式英语'},
+    '英文英式':{en:'British English accent, received pronunciation',zh:'英式英语（RP）'},
+    '日文':{en:'Japanese language',zh:'日语'}
+  },
+  usecases:{
+    '纪录片旁白':{en:'documentary narration style',zh:'纪录片旁白'},
+    '广告':{en:'commercial advertisement voiceover',zh:'商业广告'},
+    '角色配音':{en:'character voice acting',zh:'角色配音'},
+    '有声书':{en:'audiobook narration',zh:'有声书朗读'},
+    '播客':{en:'podcast host style, conversational',zh:'播客主持'},
+    '教程':{en:'tutorial explainer, clear instructional',zh:'教程讲解'}
+  }
+};
+var GENERAL=[
+  '① 标点决定节奏：句号 / 问号 / 感叹号 = 长停顿（约 0.5s）；逗号 / 分号 = 短停顿（约 0.25s）；段落之间 = 换气 + 停顿。',
+  '② 数字与单位写全：写「两百五十」而非「250」；「百分之三十」而非「30%」；「三千米」而非「3km」——避免引擎读错。',
+  '③ 缩写展开：写「联合国」而非「UN」；「例如」而非「e.g.」；英文缩写可能被逐字母读出，必要时标注读法（如「NASA 读作 nah-sah」）。',
+  '④ 长文本分段生成：按自然段落切分，每段单独合成，再拼接——既防音色漂移，又便于局部重做。',
+  '⑤ 多说话人分轨：每个角色单独生成一条音轨，后期对齐混音，不要在同一段内切换音色。',
+  '⑥ 生僻字 / 专有名词提前注音：人名、地名、品牌名、专业术语，用同音字或拼音标注（如「苘 qǐng」）。',
+  '⑦ 听完后逐段校对：发现问题只重生成问题段，不要整篇重来。',
+  '⑧ 「处理后脚本」卡中「======== 演绎提示」分隔线以下内容是给人看的提示，粘贴进引擎前请只取上半部分可朗读文本。'
+].join('\n');
+
+function speedLabel(n){
+  n=parseFloat(n);
+  if(n<0.85)return'慢';
+  if(n<0.95)return'稍慢';
+  if(n<=1.05)return'中';
+  if(n<=1.2)return'稍快';
+  return'快';
+}
+
+function buildVoice(E,voice,emotion,accent,usecase,en){
+  var v=KB.voices[voice],em=KB.emotions[emotion],ac=KB.accents[accent],uc=KB.usecases[usecase];
+  if(en){
+    var t=[v.en,em.en];
+    if(ac.en)t.push(ac.en);
+    t.push(uc.en);
+    return t.join(', ');
+  }
+  return [v.zh,em.zh,ac.zh,uc.zh].join('；');
+}
+
+function buildScript(text,emotion,speedNum,annotate,E,en){
+  var out=(text||'').trim();
+  var placeholder=en?'(Enter your voiceover script on the left.)':'（请在左侧输入旁白文本）';
+  if(!out)out=placeholder;
+  var ssml=E.ssml;
+  var sp=speedLabel(speedNum);
+  var body=out;
+  var cues=[];
+  if(annotate){
+    if(ssml){
+      // ElevenLabs: real SSML <break> tags — parsed by the engine, not spoken. Safe to paste.
+      body=body.replace(/([。！？!?])/g,'$1<break time="0.5s"/>');
+      body=body.replace(/([，,；;：:])/g,'$1<break time="0.25s"/>');
+      body=body.replace(/\n{2,}/g,'\n<break time="0.8s"/>\n');
+    }else{
+      // Non-SSML engines (Fish/CosyVoice/SoVITS): no inline pause words — they would be spoken.
+      // Pauses come from punctuation + manual segmentation.
+      cues.push(en?'Pauses via punctuation: sentence-end ~0.5s, comma ~0.25s; split paragraphs into separate generations for longer pauses.':'停顿靠标点：句末≈0.5s，逗号≈0.25s；段落间停顿请分段单独生成。');
+    }
+    // Emphasis targets — collected as advisory cues. Never inject inline *word* / asterisks:
+    // all four engines would speak the asterisks or mis-read the markup.
+    var nums=out.match(/\d+(?:[.,]\d+)?%?/g);
+    if(nums&&nums.length){
+      var seen={},uniq=[];
+      nums.forEach(function(n){if(!seen[n]){seen[n]=n;uniq.push(n);}});
+      cues.push((en?'Emphasize: ':'建议重音：')+uniq.slice(0,8).join('、'));
+    }
+  }
+  // Emotion register cues — stage directions, never inlined (would be spoken).
+  if(emotion==='神秘耳语'){
+    cues.push(en?'Whisper register — pick a whisper voice / raise Style slider; do not paste the word "whisper" into the script.':'耳语段——换用耳语音色或调高 Style 滑块，勿把「耳语」二字粘进脚本。');
+  }else if(emotion==='悲伤低沉'){
+    cues.push(en?'Low, slow register with heavy pauses; lower Stability if available.':'低沉缓慢，长停顿；ElevenLabs 可降低 Stability。');
+  }else if(emotion==='紧张'){
+    cues.push(en?'Tense, urgent, short pauses; raise speed slightly.':'紧张急促，短停顿，语速略快。');
+  }else if(emotion==='激动'){
+    cues.push(en?'Energetic, higher pitch, faster onset; raise Style.':'激动，音调上扬，起速更快；可调高 Style。');
+  }
+  var parts=[body];
+  if(cues.length){
+    parts.push('');
+    parts.push(en?'======== Delivery cues (do NOT paste into engine) ========':'======== 演绎提示（以下内容请勿粘贴进引擎）========');
+    parts.push(en?('Delivery: '+emotion+', speed '+sp+' ('+speedNum.toFixed(2)+'x)'):('演绎：'+emotion+'，语速'+sp+'（'+speedNum.toFixed(2)+'x）'));
+    cues.forEach(function(c){parts.push('· '+c);});
+  }
+  return parts.join('\n');
+}
+
+function buildParams(E,voice,emotion,speedNum){
+  var sp=speedLabel(speedNum),sv=speedNum.toFixed(2);
+  if(E.id==='elevenlabs'){
+    var stab=['激动','悲伤低沉','神秘耳语'].indexOf(emotion)>=0?'0.30':(['严肃权威','平静陈述'].indexOf(emotion)>=0?'0.55':'0.40');
+    var style=['神秘耳语','激动'].indexOf(emotion)>=0?'0.50':(['严肃权威'].indexOf(emotion)>=0||voice==='中性播音'?'0.15':'0.30');
+    return[
+      '模型: eleven_turbo_v2_5（多语种·快·推荐）/ eleven_multilingual_v2（质量更高·更稳）',
+      'Stability: '+stab+'（越低越富表现力；平静 / 权威调高，激动 / 悲伤调低）',
+      'Similarity: 0.80（克隆音色建议 0.75–0.85）',
+      'Style: '+style+'（耳语 / 情绪化调高至 0.4–0.6；播音 / 广告压低至 0.1–0.2）',
+      'Speaker Boost: ON',
+      '语速: 无直接参数，靠音色选择 + Style 间接影响；当前档位 '+sp+'（'+sv+'x），可用音频后处理微调'
+    ].join('\n');
+  }
+  if(E.id==='cosyvoice'){
+    return[
+      '采样率: 24000 Hz（24kHz）',
+      '语速参数 (speed): '+sv+'（范围 0.5–2.0；当前 '+sp+'）',
+      '参考音频: 必填，10–30s 干净样本，决定最终音色',
+      '模式: instruct 模式可叠加情绪 / 语速指令；sft 模式用预设音色',
+      '情绪指令: '+emotion+'（如「情感=悲伤」「情感=激动」）',
+      '流式: 支持流式合成，长文本可流式输出降低延迟'
+    ].join('\n');
+  }
+  if(E.id==='fish'){
+    return[
+      '格式: mp3 / wav / pcm',
+      '语速: '+sv+'（当前 '+sp+'）',
+      '参考音频: 必填，决定克隆音色；建议 10–30s 干净样本',
+      'temperature / 聚类: 默认参数即可，长文本可微调 temperature 控制稳定度',
+      '多语种: 支持中英日韩等；跨语种克隆效果取决于参考音频质量'
+    ].join('\n');
+  }
+  if(E.id==='sovits'){
+    return[
+      '参考音频: 必填，5–10s 干净单人样本',
+      'top_k: 15 / top_p: 1.0 / temperature: 1.0',
+      '语速 (speed): '+sv+'（当前 '+sp+'）',
+      '文本切分: 长文本按句号切分，逐句生成',
+      '模型: 加载对应说话人模型，或用 zero-shot 克隆'
+    ].join('\n');
+  }
+  return'';
+}
+
+function buildDrift(E){
+  var g='通用：机械感→后期叠加呼吸声 / 微停顿（勿写进可朗读文本）；发音错→生僻字 / 多音字提前注音；语速飘→分段并固定参数；多说话人→分轨生成再混音；脚本卡「演绎提示」分隔线以下内容勿粘贴进引擎。';
+  if(E.id==='elevenlabs'){
+    return[
+      '· 长文本分段（每段 < 5000 字符），分段生成再拼接，避免后半段漂移。',
+      '· 情绪靠 voice description 表达，不要在脚本里堆「激动地」「悲伤地」等提示词——引擎会照字面朗读。',
+      '· 克隆（Voice Cloning）需 30s+ 干净样本：单人、无背景音、无混响、无截断。',
+      '· Turbo 语速偏快、表现力强；Multilingual v2 更稳、适合长篇旁白。',
+      '· 跨段保持相同 voice_id + 完全相同的参数，否则音色跳变。',
+      '· '+g
+    ].join('\n');
+  }
+  if(E.id==='cosyvoice'){
+    return[
+      '· 参考音频决定最终音色，文本描述只是辅助——换音色优先换参考。',
+      '· 中文生僻字 / 多音字可能注音错误，提前标注拼音（如「重」读 chóng / zhòng 要明确）。',
+      '· 长文本需分段（建议每段 < 300 字），否则易出现节奏漂移。',
+      '· instruct 情绪指令效果有限，优先靠参考音频的语气。',
+      '· 粤语 / 方言支持有限，效果不如普通话稳定。',
+      '· '+g
+    ].join('\n');
+  }
+  if(E.id==='fish'){
+    return[
+      '· 参考音频质量直接决定克隆效果，务必干净（单人、无噪声）。',
+      '· 长文本分段生成，每段 < 500 字，避免后半段音色不稳。',
+      '· 情绪控制较弱，主要靠参考音频本身的语气传达。',
+      '· 跨语种克隆：参考音频与目标语种差异越大，口音漂移越明显。',
+      '· '+g
+    ].join('\n');
+  }
+  if(E.id==='sovits'){
+    return[
+      '· 克隆样本必须干净：单人、无背景音、无混响、无截断。',
+      '· 参考音频时长 5–10s 最佳，太短音色不稳、太长训练变慢。',
+      '· 长句易出现发音漂移 / 吞字，按句号切分逐句生成。',
+      '· 多说话人需分别训练模型或加载不同参考音频，不要混用。',
+      '· '+g
+    ].join('\n');
+  }
+  return g;
+}
+
+function generate(){
+  var eng=document.getElementById('engine').value;
+  var script=document.getElementById('script').value;
+  var voice=document.getElementById('voice').value;
+  var emotion=document.getElementById('emotion').value;
+  var speedNum=parseFloat(document.getElementById('speed').value);
+  var annotate=document.getElementById('annotate').checked;
+  var accent=document.getElementById('accent').value;
+  var usecase=document.getElementById('usecase').value;
+  var E=KB.engines.filter(function(e){return e.id===eng;})[0];
+  var en=E.dialect==='en';
+  document.getElementById('out-voice').textContent=buildVoice(E,voice,emotion,accent,usecase,en);
+  document.getElementById('out-script').textContent=buildScript(script,emotion,speedNum,annotate,E,en);
+  document.getElementById('out-params').textContent=buildParams(E,voice,emotion,speedNum);
+  document.getElementById('out-drift').textContent=buildDrift(E);
+  document.getElementById('out-general').textContent=GENERAL;
+}
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var done=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(function(){fallbackCopy(text);done()})}else{fallbackCopy(text);done()}}
+function copyAll(){var parts=['【音色设定】','',document.getElementById('out-voice').textContent,'','【处理后脚本】','',document.getElementById('out-script').textContent,'','【引擎参数】','',document.getElementById('out-params').textContent,'','【引擎备注与防漂移】','',document.getElementById('out-drift').textContent,'','【通用规则】','',document.getElementById('out-general').textContent];copyText(parts.join('\n'),document.getElementById('btn-copy-all'))}
+
+function fillSelect(id,obj){
+  var sel=document.getElementById(id);var keys=Object.keys(obj);
+  keys.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o);});
+}
+function init(){
+  var esel=document.getElementById('engine');
+  KB.engines.forEach(function(e){var o=document.createElement('option');o.value=e.id;o.textContent=e.name;esel.appendChild(o);});
+  fillSelect('voice',KB.voices);
+  fillSelect('emotion',KB.emotions);
+  fillSelect('accent',KB.accents);
+  fillSelect('usecase',KB.usecases);
+  document.getElementById('voice').value='温柔纪录片女声';
+  document.getElementById('emotion').value='平静陈述';
+  document.getElementById('accent').value='中文普通话';
+  document.getElementById('usecase').value='纪录片旁白';
+  var sp=document.getElementById('speed'),svl=document.getElementById('speedval');
+  sp.addEventListener('input',function(){svl.textContent=parseFloat(sp.value).toFixed(2)+'x';generate();});
+  ['engine','voice','emotion','accent','usecase'].forEach(function(id){document.getElementById(id).addEventListener('change',generate);});
+  document.getElementById('script').addEventListener('input',generate);
+  document.getElementById('annotate').addEventListener('change',generate);
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(b){b.addEventListener('click',function(){copyText(document.getElementById('out-'+b.dataset.copy).textContent,b);});});
+  generate();
+}
+init();
+</script>
+</body>
+</html>

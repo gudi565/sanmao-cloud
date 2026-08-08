@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cursor .cursorrules 生成器</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>Cursor .cursorrules 生成器</h1><p class="sub">项目描述 → .cursorrules 文件</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+  <div class="field"><label for="desc">项目描述</label><textarea id="desc" rows="3" placeholder="这个项目做什么、为谁做、解决什么问题">一个面向开发者的 API 文档平台，支持实时协作和版本管理</textarea></div>
+  <div class="field"><label for="stack">技术栈</label><input id="stack" type="text" placeholder="Next.js 14, TypeScript, Tailwind, Prisma, Postgres" value="Next.js 14, TypeScript, Tailwind, Prisma, Postgres"></div>
+  <div class="field"><label for="style">代码风格偏好</label><textarea id="style" rows="3" placeholder="函数式优先、早返回、命名语义化…">函数式优先、早返回、命名语义化、组合优于继承</textarea></div>
+  <div class="field"><label for="dirs">目录结构（可选）</label><textarea id="dirs" rows="3" placeholder="src/app/&#10;src/components/">src/app/
+src/components/
+src/lib/
+src/server/</textarea></div>
+  <div class="field"><label for="forbidden">禁区（可选）</label><textarea id="forbidden" rows="3" placeholder="不用 any、不引入新依赖…">不使用 any 类型
+不引入未经评估的新依赖
+不在组件中直接写 SQL</textarea></div>
+  <button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+  <button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+  <div class="card">
+    <div class="card-hd"><span class="card-tt">.cursorrules</span><button class="cbtn" data-copy="cursorrules">复制</button></div>
+    <div class="card-bd" id="out-cursorrules"></div>
+  </div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>把内容存为 .cursorrules（Cursor）或 CLAUDE.md（Claude Code），放项目根目录即可生效</p></div></footer>
+<script>
+function detectLang(stack){
+  var s=(stack||'').toLowerCase();
+  if(/python|django|flask|fastapi/.test(s)) return 'py';
+  if(/\bgo\b|golang/.test(s)) return 'go';
+  if(/rust/.test(s)) return 'rs';
+  return 'ts';
+}
+function buildRules(){
+  var desc=document.getElementById('desc').value;
+  var stack=document.getElementById('stack').value;
+  var style=document.getElementById('style').value;
+  var dirs=document.getElementById('dirs').value;
+  var forbidden=document.getElementById('forbidden').value;
+  var lang=detectLang(stack);
+  var o='';
+  o+='# Project Overview\n\n';
+  o+=(desc.trim()||'TODO: describe what this project does, who it serves, and the core problem it solves.')+'\n\n';
+  o+='# Tech Stack\n\n';
+  var stacks=stack.split(/[,，、]+/).map(function(s){return s.trim()}).filter(Boolean);
+  if(stacks.length){stacks.forEach(function(s){o+='- '+s+'\n'})}else{o+='- (list frameworks, languages, databases, tooling)\n'}
+  o+='\n';
+  o+='# Code Style\n\n';
+  o+='## Naming\n';
+  o+='- Components / types: `PascalCase` (UserProfile, OrderStatus)\n';
+  o+='- Functions / variables: `camelCase` (fetchUser, isLoading)\n';
+  o+='- Constants: `UPPER_SNAKE` (MAX_RETRY, API_BASE_URL)\n';
+  o+='- Files: `kebab-case.ts` modules, `PascalCase.tsx` components\n\n';
+  if(style.trim()){
+    o+='## Preferences\n';
+    style.split(/\n+/).map(function(s){return s.trim()}).filter(Boolean).forEach(function(s){o+='- '+s+'\n'});
+    o+='\n';
+  }
+  o+='## Error Handling\n';
+  o+='- Fail fast, return early. Prefer guard clauses over nested branches.\n';
+  o+='- Throw typed errors; catch at boundaries with user-friendly messages.\n\n';
+  o+='```'+lang+'\n';
+  if(lang==='py'){
+    o+='def get_user(user_id: str) -> User | None:\n';
+    o+='    if not user_id:\n';
+    o+='        raise ValueError("user_id is required")  # guard\n';
+    o+='    user = db.user.find(user_id)\n';
+    o+='    if user is None:\n';
+    o+='        return None  # early return\n';
+    o+='    return user\n';
+  }else{
+    o+='function getUser(id: string): User | null {\n';
+    o+='  if (!id) throw new Error("id required");  // guard\n';
+    o+='  const user = db.user.findUnique({ where: { id } });\n';
+    o+='  if (!user) return null;  // early return\n';
+    o+='  return user;\n';
+    o+='}\n';
+  }
+  o+='```\n\n';
+  o+='## Comments\n';
+  o+='- Explain *why*, not *what*. Self-documenting code first.\n';
+  o+='- Doc comments on exported / public APIs only.\n\n';
+  o+='# Directory Conventions\n\n';
+  if(dirs.trim()){
+    o+='```\n'+dirs.trim()+'\n```\n\n';
+  }else{
+    o+='- Group by feature/domain; colocate component + test + styles.\n';
+    o+='- Keep `lib/` for shared utils, `server/` for backend-only logic.\n\n';
+  }
+  o+='# Common Patterns\n\n';
+  o+='## Data Fetching\n';
+  o+='- Prefer server-side fetching; validate and sanitize all inputs.\n';
+  o+='- Never trust external data — parse + validate at the boundary.\n\n';
+  o+='## Components\n';
+  o+='- Small, single-responsibility, composable. Props typed explicitly.\n';
+  o+='- Keep side effects in hooks/services, out of presentational components.\n\n';
+  o+='## Testing\n';
+  o+='- Test behavior, not implementation details.\n';
+  o+='- Happy path + at least one edge case per unit. Run before commit.\n\n';
+  o+='# Constraints\n\n';
+  if(forbidden.trim()){
+    forbidden.split(/\n+/).map(function(s){return s.trim()}).filter(Boolean).forEach(function(s){o+='- '+s+'\n'});
+  }else{
+    o+='- (add explicit prohibitions, e.g. no `any`, no un-reviewed deps)\n';
+  }
+  return o.trim();
+}
+function generate(){
+  document.getElementById('out-cursorrules').textContent=buildRules();
+}
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=function(){btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(function(){btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(function(){fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+function copyAll(){copyText([document.getElementById('out-cursorrules').textContent].join('\n'),document.getElementById('btn-copy-all'))}
+function init(){
+  var fields=document.querySelectorAll('.inputs input, .inputs textarea, .inputs select');
+  fields.forEach(function(f){f.addEventListener('input',generate);f.addEventListener('change',generate)});
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(function(b){
+    b.addEventListener('click',function(){var k=b.getAttribute('data-copy');var el=document.getElementById('out-'+k);if(el)copyText(el.textContent,b)});
+  });
+  generate();
+}
+init();
+</script>
+</body>
+</html>

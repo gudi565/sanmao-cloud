@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>品牌 Logo 设计 prompt</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>品牌 Logo 设计 prompt</h1><p class="sub">Ideogram / MJ / Flux 出图 — 文字清晰、矢量扁平、白底居中,告别乱码与渐变漂移</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="brand">品牌名</label><input type="text" id="brand" value="Lumina" placeholder="如 Lumina / 山岚"></div>
+<div class="field"><label for="industry">行业 / 业务</label><input type="text" id="industry" value="家居生活 lifestyle" placeholder="如 咖啡 / fintech / 教育"></div>
+<div class="field"><label for="logotype">Logo 类型</label><select id="logotype">
+<option value="wordmark">字母标 wordmark</option>
+<option value="symbol">图形标 symbol</option>
+<option value="emblem">徽章 emblem</option>
+<option value="mascot">吉祥物 mascot</option>
+<option value="minimalist">极简线条 minimalist</option>
+</select></div>
+<div class="field"><label for="style">风格</label><select id="style">
+<option value="geom">极简几何</option>
+<option value="vintage">手写复古</option>
+<option value="tech">科技未来</option>
+<option value="nordic">北欧扁平</option>
+<option value="seal">中式印章</option>
+</select></div>
+<div class="field"><label for="palette">色调</label><input type="text" id="palette" value="深蓝与金 navy & gold" placeholder="如 黑白 / 莫兰迪绿 / 深蓝金"></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">Ideogram Prompt(推荐 · 文字最清晰)</span><button class="cbtn" data-copy="ideo">复制</button></div><div class="card-bd" id="out-ideo"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">MJ / Flux Prompt + 负向</span><button class="cbtn" data-copy="mj">复制</button></div><div class="card-bd" id="out-mj"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>首选 Ideogram 保证文字清晰可读;MJ/Flux 易出乱字,务必保留 flat vector + solid white background 防漂移。</p></div></footer>
+<script>
+var TYPE_MAP = {
+  wordmark: 'wordmark / lettermark logo with the brand name as the central typographic element',
+  symbol: 'abstract pictorial symbol mark, simple iconic glyph',
+  emblem: 'circular emblem / badge logo with contained border',
+  mascot: 'mascot character logo, friendly illustrated figure',
+  minimalist: 'minimalist single-line logo, ultra-clean line-art'
+};
+var STYLE_MAP = {
+  geom: 'clean minimalist geometric, precise shapes',
+  vintage: 'hand-drawn vintage retro, textured classic feel',
+  tech: 'futuristic high-tech, sleek and modern',
+  nordic: 'Scandinavian flat vector, soft and friendly',
+  seal: 'traditional Chinese seal stamp, carved relief aesthetic'
+};
+
+function build(){
+  var brand = (document.getElementById('brand').value || '').trim() || 'BRAND';
+  var industry = (document.getElementById('industry').value || '').trim() || 'lifestyle';
+  var logotype = document.getElementById('logotype').value;
+  var style = document.getElementById('style').value;
+  var palette = (document.getElementById('palette').value || '').trim() || 'monochrome black and white';
+  var typeEn = TYPE_MAP[logotype] || TYPE_MAP.wordmark;
+  var styleEn = STYLE_MAP[style] || STYLE_MAP.geom;
+
+  var ideo = 'A professional ' + typeEn + ' for a brand named "' + brand + '" in the ' + industry + ' industry. '
+    + 'Art direction: ' + styleEn + ', ' + palette + ' color palette. '
+    + 'The text "' + brand + '" is rendered clearly and legibly as the central focus, with clean vector typography, perfect spelling. '
+    + 'Professional logo design, flat vector art, centered composition, solid white background, no photorealistic elements, no gradient background.';
+
+  var prompt = styleEn + ' ' + typeEn + ' for the brand "' + brand + '", ' + industry + ' industry, '
+    + palette + ' color palette, clean vector typography with the word "' + brand + '" spelled correctly, '
+    + 'professional logo design, flat vector, centered, solid white background '
+    + '--no realistic photo, 3d render, gradient mesh, watermark, signature, complex background, clutter';
+
+  var neg = 'Negative prompt: lowres, text errors, misspelled words, watermark, signature, blurry, '
+    + 'distorted letters, extra limbs, gradient mesh background, photorealistic, 3d render, noisy, cluttered, multiple colors bleeding';
+
+  document.getElementById('out-ideo').textContent = ideo;
+  document.getElementById('out-mj').textContent = prompt + '\n\n' + neg;
+}
+
+function generate(){ build(); }
+
+function fallbackCopy(text){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){var o=btn.textContent;var d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}}
+
+function init(){
+  var ids = ['brand','industry','logotype','style','palette'];
+  for (var i=0;i<ids.length;i++){
+    var el = document.getElementById(ids[i]);
+    el.addEventListener('input', generate);
+    el.addEventListener('change', generate);
+  }
+  document.getElementById('btn-gen').addEventListener('click', generate);
+  document.getElementById('btn-copy-all').addEventListener('click', function(){
+    var all = '【Ideogram Prompt(推荐)】\n' + document.getElementById('out-ideo').textContent
+      + '\n\n【MJ / Flux Prompt + 负向】\n' + document.getElementById('out-mj').textContent;
+    copyText(all, document.getElementById('btn-copy-all'));
+  });
+  var btns = document.querySelectorAll('.cbtn');
+  for (var j=0;j<btns.length;j++){
+    (function(b){
+      b.addEventListener('click', function(){
+        var key = b.getAttribute('data-copy');
+        copyText(document.getElementById('out-' + key).textContent, b);
+      });
+    })(btns[j]);
+  }
+  generate();
+}
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

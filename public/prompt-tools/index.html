@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>提示词工具箱 · 总入口</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:14px;--rs:10px;--shadow:0 1px 3px rgba(0,0,0,.04),0 6px 18px rgba(0,0,0,.05)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:52px 24px 28px;text-align:center}
+.header h1{font-size:34px;font-weight:700;letter-spacing:-.6px}
+.header .sub{font-size:15px;color:var(--t3);margin-top:8px}
+.search-wrap{max-width:560px;margin:22px auto 0}
+.search-wrap input{width:100%;padding:11px 16px;border:1px solid var(--border);border-radius:var(--rs);font-size:15px;background:var(--surface);color:var(--text);font-family:inherit;box-shadow:var(--shadow)}
+.search-wrap input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--asoft)}
+.wrap{max-width:1080px;margin:0 auto;padding:8px 24px 64px}
+.cat{margin-top:30px}
+.cat-hd{font-size:13px;font-weight:700;color:var(--t2);letter-spacing:.5px;margin-bottom:12px;padding-left:2px;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--text);transition:transform .14s,box-shadow .14s,border-color .14s}
+.card:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.06),0 12px 28px rgba(0,0,0,.07);border-color:var(--accent)}
+.card .t{font-size:15.5px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card .t .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.card .d{font-size:12.8px;color:var(--t2);min-height:34px}
+.card .open{font-size:12px;color:var(--accent);font-weight:600;margin-top:4px}
+.cat-IMAGE .dot{background:#ff9f0a}
+.cat-VIDEO .dot{background:#ff453a}
+.cat-MUSIC .dot{background:#bf5af2}
+.cat-VOICE .dot{background:#30d158}
+.cat-TEXT .dot{background:#0a84ff}
+.cat-CODE .dot{background:#64d2ff}
+.empty{display:none;text-align:center;color:var(--t3);padding:40px;font-size:14px}
+.footer{padding:18px 0 50px;text-align:center;font-size:12.5px;color:var(--t3)}
+</style>
+</head>
+<body>
+<header class="header">
+  <h1>提示词工具箱</h1>
+  <p class="sub">图像 · 视频 · 音乐 · 语音 · 文字 · 代码 — 点一下开对应工具</p>
+  <div class="search-wrap"><input id="q" type="text" placeholder="搜索工具(例:产品、运镜、文案、cursorrules)…"></div>
+</header>
+<main class="wrap" id="list"></main>
+<p class="empty" id="empty">没找到匹配的工具。</p>
+<footer class="footer">全部离线 · 双击即用 · 想加新工具或改现有的,直接说</footer>
+
+<script>
+const TOOLS = [
+  {cat:"IMAGE", path:"mj-product-photo.html", t:"MJ 电商产品摄影", d:"产品 + 背景 + 光线 → Midjourney prompt(--ar/--style/--no)"},
+  {cat:"IMAGE", path:"portrait-realistic.html", t:"写实人像 prompt", d:"Flux / SDXL 正向 + 负向 + 权重,防手部/眼睛"},
+  {cat:"IMAGE", path:"jimeng-chinese-illustration.html", t:"即梦 国风插画", d:"水墨/工笔/岩彩,中文 prompt + 画家参考"},
+  {cat:"IMAGE", path:"oil-painting-ref.html", t:"油画创作参考图", d:"萨金特/佐恩/弗洛伊德等大师风格"},
+  {cat:"IMAGE", path:"image-prompt-generator.html", t:"图像 · 多引擎", d:"MJ / Flux / SDXL / 即梦 / Ideogram 综合版"},
+  {cat:"IMAGE", path:"jimeng-image-prompt-generator.html", t:"即梦图像(旧)", d:"你之前做的即梦图像 prompt 工具"},
+
+  {cat:"VIDEO", path:"sora-cinematic-shot.html", t:"Sora 电影感单镜头", d:"英文自然语言段落,运镜 + 光线 + 时间感"},
+  {cat:"VIDEO", path:"kling-chinese-shot.html", t:"可灵 中文运镜", d:"结构化中文 prompt,运镜词 + 时长"},
+  {cat:"VIDEO", path:"product-ad-5s.html", t:"产品广告 5s", d:"3 镜头脚本(主特写/演示/收尾),中英双版"},
+  {cat:"VIDEO", path:"video-prompt-generator.html", t:"视频 · 多引擎", d:"Sora/Veo/可灵/海螺/即梦/Runway/Pika 综合版"},
+
+  {cat:"MUSIC", path:"suno-prompt-generator.html", t:"Suno 音乐(16 曲风)", d:"内置 16 曲风 + 防漂移方法论 + VITRINE 预设"},
+  {cat:"MUSIC", path:"suno-jingle-30s.html", t:"Suno 30 秒品牌 jingle", d:"品牌词 + 情绪 + 曲风 → 短 prompt + 歌词"},
+
+  {cat:"VOICE", path:"voiceover-narration.html", t:"旁白脚本处理器", d:"停顿 / 情绪标签 / 数字全写,配音可用"},
+  {cat:"VOICE", path:"voice-prompt-generator.html", t:"语音 · 多引擎", d:"ElevenLabs / Fish / CosyVoice / SoVITS 综合版"},
+
+  {cat:"TEXT", path:"xiaohongshu-copy.html", t:"小红书种草文案", d:"system prompt + 标题 + 正文模板 + few-shot"},
+  {cat:"TEXT", path:"character-card.html", t:"角色卡 / 人设", d:"Character.AI / Coze / SillyTavern 完整人设卡"},
+  {cat:"TEXT", path:"llm-system-prompt-generator.html", t:"LLM 系统提示词", d:"ChatGPT/Claude/Kimi/豆包/Coze/GPTs/Cursor"},
+
+  {cat:"CODE", path:"cursorrules-gen.html", t:"Cursor .cursorrules", d:"项目描述 + 技术栈 → .cursorrules / CLAUDE.md"},
+  {cat:"IMAGE", path:"logo-design.html", t:"品牌 Logo 设计", d:"品牌名+行业+类型 → Ideogram/MJ/Flux,文字清晰矢量"},
+  {cat:"IMAGE", path:"anime-portrait.html", t:"二次元 / 动漫头像", d:"danbooru 标签 + 负向,防多指/水印/眼不对称"},
+  {cat:"IMAGE", path:"architecture-interior.html", t:"建筑 / 室内设计图", d:"空间+风格+材质 → 建筑摄影 prompt,防透视畸变"},
+  {cat:"VIDEO", path:"heygen-digital-human.html", t:"HeyGen / 即梦 数字人", d:"口播脚本 → 数字人脚本(停顿/情绪/数字全写)+ 设置"},
+  {cat:"MUSIC", path:"udio-music.html", t:"Udio 音乐", d:"主题+曲风+乐器 → Udio 标签流 + 描述"},
+  {cat:"VOICE", path:"audiobook-narrator.html", t:"有声书多角色脚本", d:"角色音色标注 + 数字全写 + 情绪段标"},
+  {cat:"TEXT", path:"weekly-report.html", t:"周报 / 工作汇报", d:"流水账 → 结构化周报 system prompt + 模板"},
+  {cat:"TEXT", path:"email-writer.html", t:"商务邮件", d:"场景+要点+语气 → 邮件 system prompt + 模板"},
+  {cat:"TEXT", path:"product-naming.html", t:"产品 / 品牌命名", d:"品类+调性 → 10 个命名 + 释义 + 可注册性"},
+  {cat:"CODE", path:"sql-from-question.html", t:"自然语言 → SQL", d:"表结构 + 自然语言 → 可执行 SQL system prompt"},
+];
+
+const CAT_LABEL = {IMAGE:"图像",VIDEO:"视频",MUSIC:"音乐",VOICE:"语音",TEXT:"文字",CODE:"代码"};
+const list = document.getElementById('list');
+const empty = document.getElementById('empty');
+
+function render(q){
+  q = (q||'').trim().toLowerCase();
+  list.innerHTML = '';
+  const filtered = TOOLS.filter(x=> !q || (x.t+' '+x.d+' '+x.cat).toLowerCase().includes(q));
+  if(!filtered.length){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  // group by category, preserve category order
+  const cats = [...new Set(TOOLS.map(t=>t.cat))];
+  for(const c of cats){
+    const items = filtered.filter(t=>t.cat===c);
+    if(!items.length) continue;
+    const sec = document.createElement('section'); sec.className='cat cat-'+c;
+    sec.innerHTML = '<div class="cat-hd">'+CAT_LABEL[c]+'</div>';
+    const g = document.createElement('div'); g.className='grid';
+    for(const it of items){
+      const a = document.createElement('a');
+      a.className = 'card';
+      a.href = it.path;
+      a.innerHTML = '<div class="t"><span class="dot"></span>'+it.t+'</div><div class="d">'+it.d+'</div><div class="open">打开 →</div>';
+      g.appendChild(a);
+    }
+    sec.appendChild(g); list.appendChild(sec);
+  }
+}
+document.getElementById('q').addEventListener('input', e=>render(e.target.value));
+render('');
+</script>
+</body>
+</html>

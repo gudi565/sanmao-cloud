@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MJ 电商产品摄影</title>
+<style>
+:root{--bg:#f5f5f7;--surface:#fff;--text:#1d1d1f;--t2:#6e6e73;--t3:#86868b;--border:#d2d2d7;--bl:#e8e8ed;--accent:#0071e3;--accent2:#0077ed;--asoft:#e8f1fd;--r:12px;--rs:8px;--shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
+*{margin:0;padding:0;box-sizing:border-box} body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:15px}
+.header{padding:40px 0 24px;text-align:center} .header h1{font-size:26px;font-weight:700;letter-spacing:-.4px} .header .sub{font-size:14px;color:var(--t3);margin-top:6px}
+.container{max-width:880px;margin:0 auto;padding:0 24px} .grid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;padding-bottom:40px}
+.inputs{position:sticky;top:20px} .field{margin-bottom:12px} .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13.5px;background:var(--surface);color:var(--text);font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--asoft)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-gen{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:2px}
+.outputs{min-width:0} .btn-copy-all{width:100%;padding:9px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--bl);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px} .card-tt{font-size:14px;font-weight:650}
+.cbtn{padding:3px 11px;font-size:11.5px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0} .cbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-bd{font-size:13px;line-height:1.6;color:#424245;white-space:pre-wrap;word-break:break-word}
+.footer{padding:18px 0 36px;text-align:center;font-size:12px;color:var(--t3)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.inputs{position:static}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container"><h1>MJ 电商产品摄影</h1><p class="sub">Midjourney · 产品 + 背景 + 光线 + --ar</p></div></header>
+<main class="container"><div class="grid">
+<aside class="inputs">
+<div class="field"><label for="product">商品</label><textarea id="product" rows="3" placeholder="磨砂玻璃香水瓶,琥珀色液体">磨砂玻璃香水瓶,琥珀色液体</textarea></div>
+<div class="field"><label for="bg">背景与台面</label><select id="bg"><option>纯色无缝纸</option><option>大理石台面</option><option>木质</option><option>水波纹</option><option>场景搭景</option></select></div>
+<div class="field"><label for="light">光线</label><select id="light"><option>柔光箱</option><option>侧逆光</option><option>窗口自然光</option><option>影棚硬光</option><option>霓虹</option></select></div>
+<div class="field"><label for="style">风格调性</label><select id="style"><option>高端极简</option><option>日性自然</option><option>奢华金</option><option>清新森系</option><option>赛博</option></select></div>
+<div class="field"><label for="ar">比例</label><select id="ar"><option value="1:1">--ar 1:1</option><option value="4:5">--ar 4:5</option><option value="16:9">--ar 16:9</option><option value="3:4">--ar 3:4</option></select></div>
+<button class="btn-gen" id="btn-gen">生成</button>
+</aside>
+<section class="outputs">
+<button class="btn-copy-all" id="btn-copy-all">全部复制</button>
+<div class="card"><div class="card-hd"><span class="card-tt">MJ Prompt</span><button class="cbtn" data-copy="prompt">复制</button></div><div class="card-bd" id="out-prompt"></div></div>
+<div class="card"><div class="card-hd"><span class="card-tt">防漂移提示</span><button class="cbtn" data-copy="tips">复制</button></div><div class="card-bd" id="out-tips"></div></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container"><p>一件产品、无人物;材质写具体;--no 已排除 text,logo,hands,fingers,watermark</p></div></footer>
+<script>
+const KB={
+  bg:{
+    '纯色无缝纸':'seamless paper backdrop, solid color',
+    '大理石台面':'polished marble surface',
+    '木质':'natural wood surface',
+    '水波纹':'water ripple reflection surface',
+    '场景搭景':'stylized set design'
+  },
+  light:{
+    '柔光箱':'softbox lighting, diffused even illumination',
+    '侧逆光':'side-backlight, rim light',
+    '窗口自然光':'soft window natural light',
+    '影棚硬光':'studio hard light, directional',
+    '霓虹':'neon lighting, vibrant glow'
+  },
+  style:{
+    '高端极简':'high-end minimalist, clean editorial mood',
+    '日性自然':'natural Japanese wabi-sabi aesthetic, muted tones',
+    '奢华金':'luxurious, gold accents, opulent mood',
+    '清新森系':'fresh botanical, forest greenery accents',
+    '赛博':'cyberpunk futuristic, high-tech atmosphere'
+  }
+};
+
+function buildPrompt(){
+  const product=(document.getElementById('product').value||'').trim()||'磨砂玻璃香水瓶,琥珀色液体';
+  const bg=document.getElementById('bg').value;
+  const light=document.getElementById('light').value;
+  const style=document.getElementById('style').value;
+  const ar=document.getElementById('ar').value;
+  const surface=KB.bg[bg];
+  const lighting=KB.light[light];
+  const mood=KB.style[style];
+  return `${product}, ${surface}, ${lighting}, ${mood}, product photography, 85mm macro, shallow depth of field, high detail --ar ${ar} --style raw --stylize 250 --no text,logo,hands,fingers,watermark`;
+}
+
+function buildTips(){
+  const bg=document.getElementById('bg').value;
+  const light=document.getElementById('light').value;
+  const style=document.getElementById('style').value;
+  const t=[];
+  t.push('• 只出现一件产品,绝不出现人物、手、肢体(--no 已含 hands,fingers)');
+  t.push('• 产品居中或置于三分法交叉点,留足负空间');
+  t.push('• 材质必须写具体:磨砂/抛光/拉丝/透明/哑光,否则质感发糊');
+  t.push('• 控制高光不过曝,保留瓶身与金属的关键反光');
+  if(bg==='纯色无缝纸')t.push('• 背景色与产品拉开明度差(浅物深底/深物浅底),防止融色');
+  else if(bg==='大理石台面')t.push('• 选纹理细腻的大理石,别让纹路抢走视觉焦点');
+  else if(bg==='木质')t.push('• 木纹方向尽量与产品走向垂直,避免平行线条干扰');
+  else if(bg==='水波纹')t.push('• 液体类产品慎用水波纹,倒影易与本体混淆;非液体可增强氛围');
+  else if(bg==='场景搭景')t.push('• 道具做减法,每件道具都服务产品叙事,别喧宾夺主');
+  if(light==='柔光箱')t.push('• 柔光下补一点边缘光,防止产品轮廓融进背景');
+  else if(light==='侧逆光')t.push('• 侧逆光注意正面补光,否则产品正面死黑');
+  else if(light==='窗口自然光')t.push('• 锁定单一光源方向,别让 MJ 自行脑补第二光源');
+  else if(light==='影棚硬光')t.push('• 硬光易产生死白高光,可在商品描述里强调 "controlled highlights"');
+  else if(light==='霓虹')t.push('• 霓虹极易偏色染到产品上,在描述里强调产品真实本色(如 "true amber color")');
+  if(style==='高端极简')t.push('• 极简风留白要狠,产品占画面 40-50% 即可');
+  else if(style==='日性自然')t.push('• 避免高饱和,日性风讲究低饱和的克制感');
+  else if(style==='奢华金')t.push('• 金色点缀克制,过量显俗;金银分清别混用');
+  else if(style==='清新森系')t.push('• 植物道具保持新鲜干净,追加 --no wilted,decay');
+  else if(style==='赛博')t.push('• 产品仍要是视觉主体,别让霓虹背景吞掉产品');
+  t.push('• 若画面仍冒出杂字,追加 --no font,letters,words');
+  return t.join('\n');
+}
+
+function generate(){
+  document.getElementById('out-prompt').textContent=buildPrompt();
+  document.getElementById('out-tips').textContent=buildTips();
+}
+
+function fallbackCopy(text){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t)}
+function copyText(text,btn){
+  const o=btn.textContent;
+  const d=()=>{btn.textContent='已复制 ✓';btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';btn.style.borderColor=''},1500)};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(d).catch(()=>{fallbackCopy(text);d()})}else{fallbackCopy(text);d()}
+}
+function copyAll(){
+  copyText([
+    '【MJ Prompt】',
+    document.getElementById('out-prompt').textContent,
+    '',
+    '【防漂移提示】',
+    document.getElementById('out-tips').textContent
+  ].join('\n'),document.getElementById('btn-copy-all'));
+}
+
+function init(){
+  const fields=['product','bg','light','style','ar'];
+  fields.forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('change',generate);
+    el.addEventListener('input',generate);
+  });
+  document.getElementById('btn-gen').addEventListener('click',generate);
+  document.getElementById('btn-copy-all').addEventListener('click',copyAll);
+  document.querySelectorAll('.cbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const key=btn.getAttribute('data-copy');
+      copyText(document.getElementById('out-'+key).textContent,btn);
+    });
+  });
+  generate();
+}
+init();
+</script>
+</body>
+</html>
