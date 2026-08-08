@@ -5,7 +5,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --registry=https://registry.npmmirror.com
 
 # ---------- builder ----------
 FROM node:20-alpine AS builder
