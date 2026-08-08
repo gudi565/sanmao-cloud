@@ -1,29 +1,29 @@
 import type { Metadata } from "next";
 import PageHeader from "@/components/PageHeader";
-import ToolsExplorer from "@/components/ToolsExplorer";
+import SkillsGrid from "@/components/SkillsGrid";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/Reveal";
 import Icon from "@/components/Icon";
 import MagneticButton from "@/components/MagneticButton";
 import { SCENARIOS } from "@/lib/data";
 
-export const metadata: Metadata = { title: "AI 工具" };
+export const metadata: Metadata = { title: "AI 技能" };
 
 export default function ToolsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="AI 工具"
+        eyebrow="AI 技能"
         title={
           <>
-            30+ 实用工具，<span className="text-gradient">开箱即用</span>
+            9 个原生中文 AI 技能，<span className="text-gradient">开箱即用</span>
           </>
         }
-        desc="把课程里学到的能力，变成日常顺手就能用的工具。写作、绘画、办公、视频，一站搞定。"
+        desc="每一个都是封装了成熟方法论的 AI 技能——小红书爆款、短视频脚本、公众号长文、代码审查、慢 SQL 急诊……输入需求，直接出成果。"
       />
 
       <section className="mx-auto max-w-7xl px-6 pb-12">
-        <ToolsExplorer />
+        <SkillsGrid />
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20">
