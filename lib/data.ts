@@ -142,6 +142,8 @@ export type Tool = {
   desc: string;
   icon: string;
   hot?: boolean;
+  url?: string;
+  paid?: boolean;
   from: string;
   to: string;
 };
@@ -152,6 +154,7 @@ export const TOOL_CATEGORIES = [
   "图像",
   "办公",
   "学习",
+  "论文",
   "视频",
   "编程",
   "音频",
@@ -167,6 +170,16 @@ export const TOOLS: Tool[] = [
   { name: "智能翻译", category: "写作", desc: "保留语境与语气的高质量多语种翻译", icon: "globe", from: "#0e7c5a", to: "#13a06b" },
   { name: "语音转写", category: "音频", desc: "会议、课程实时转文字，自动总结", icon: "mic", from: "#13a06b", to: "#c9a86a" },
   { name: "AI 思维导图", category: "学习", desc: "把任何主题秒拆成结构化思维导图", icon: "layers", from: "#0a5c36", to: "#13a06b" },
+  {
+    name: "论文降重",
+    category: "论文",
+    desc: "上传论文，一键降重 + 降 AIGC，轻松过查重",
+    icon: "pen",
+    paid: true,
+    url: "https://8.218.50.171.nip.io/",
+    from: "#0e7c5a",
+    to: "#5bf0b0",
+  },
 ];
 
 export type Testimonial = {
