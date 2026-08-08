@@ -48,7 +48,10 @@ export default function Cursor() {
     };
     const down = () => ring.classList.add("is-down");
     const up = () => ring.classList.remove("is-down");
-    const leave = () => gsap.to([dot, ring], { opacity: 0, duration: 0.3 });
+    const leave = () => {
+      shown = false;
+      gsap.to([dot, ring], { opacity: 0, duration: 0.3 });
+    };
 
     window.addEventListener("mousemove", move, { passive: true });
     window.addEventListener("mouseover", over, { passive: true });
