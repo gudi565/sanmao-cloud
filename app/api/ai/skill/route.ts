@@ -1,5 +1,3 @@
-import { createOpenAI } from "@ai-sdk/openai";
-import { streamText } from "ai";
 import { promises as fs } from "fs";
 import path from "path";
 import { SKILLS } from "@/lib/skills";
@@ -7,11 +5,8 @@ import { SKILLS } from "@/lib/skills";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// 智谱 GLM(OpenAI 兼容接口)
-const zhipu = createOpenAI({
-  baseURL: "https://open.bigmodel.cn/api/paas/v4",
-  apiKey: process.env.ZHIPU_API_KEY || "",
-});
+const ZHIPU_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
+const MODEL = "glm-4-plus";
 
 async function loadSkillPrompt(slug: string): Promise<string> {
   try {
@@ -19,7 +14,7 @@ async function loadSkillPrompt(slug: string): Promise<string> {
       path.join(process.cwd(), "skills", slug, "SKILL.md"),
       "utf8"
     );
-    return md.replace(/^---[\s\S]*?---\s*/, "").trim(); // 去掉 YAML frontmatter
+    return md.replace(/^---[\s\S]*?---\s*/, "").trim();
   } catch {
     return "";
   }
@@ -42,7 +37,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "请填写输入内容" }, { status: 400 });
   if (!process.env.ZHIPU_API_KEY)
     return Response.json(
-      { error: "AI 尚未配置(缺少 ZHIPU_API_KEY),站长还没填 key" },
+      { error: "AI 尚未配置(缺少 ZHIPU_API_KEY)" },
       { status: 503 }
     );
 
@@ -52,10 +47,69 @@ export async function POST(req: Request) {
 ===== 技能说明 =====
 ${prompt}`;
 
-  const result = streamText({
-    model: zhipu("glm-4-plus"),
-    system,
-    messages: [{ role: "user", content: input }],
+  // 直接调智谱(绕开 AI SDK 的流式兼容问题),流式 SSE → 纯文本流
+  const upstream = await fetch(ZHIPU_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.ZHIPU_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: input },
+      ],
+      stream: true,
+      temperature: 0.7,
+    }),
   });
-  return result.toTextStreamResponse();
+
+  if (!upstream.ok) {
+    const errText = await upstream.text().catch(() => "");
+    return Response.json(
+      { error: `智谱 API 错误(${upstream.status}):${errText.slice(0, 200)}` },
+      { status: 502 }
+    );
+  }
+
+  // 解析智谱 SSE,提取 content delta,转成纯文本流给前端
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = upstream.body!.getReader();
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+      let buffer = "";
+
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const data = trimmed.slice(5).trim();
+            if (data === "[DONE]") continue;
+            try {
+              const json = JSON.parse(data);
+              const delta = json.choices?.[0]?.delta?.content;
+              if (delta) controller.enqueue(encoder.encode(delta));
+            } catch {
+              /* skip malformed */
+            }
+          }
+        }
+      } catch {
+        /* connection ended */
+      }
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
 }
