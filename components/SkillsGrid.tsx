@@ -8,33 +8,50 @@ import Icon from "./Icon";
 import { cn } from "@/lib/utils";
 
 function SkillCard({ skill }: { skill: Skill }) {
+  const inner = (
+    <GlowCard className="flex h-full flex-col p-6">
+      <div className="flex items-start justify-between">
+        <span
+          className="flex h-12 w-12 items-center justify-center rounded-2xl text-bg"
+          style={{
+            background: `linear-gradient(135deg, ${skill.from}, ${skill.to})`,
+          }}
+        >
+          <Icon name={skill.icon} size={22} />
+        </span>
+        <span className="rounded-full bg-gold/15 px-2.5 py-1 text-[11px] font-medium text-gold">
+          {skill.externalUrl ? "外部" : skill.price > 0 ? `¥${skill.price}` : "免费"}
+        </span>
+      </div>
+      <h3 className="mt-5 font-display text-lg font-semibold text-ink">
+        {skill.name}
+      </h3>
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-dim">
+        {skill.tagline}
+      </p>
+      <span className="mt-5 inline-flex items-center gap-1 text-sm text-accent">
+        {skill.externalUrl ? "打开工具" : "使用技能"}
+        <Icon name="arrow" size={14} />
+      </span>
+    </GlowCard>
+  );
+
+  // 外部工具 → 新窗口打开;内部技能 → 进 /tools/{slug}
+  if (skill.externalUrl) {
+    return (
+      <a
+        href={skill.externalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block h-full"
+      >
+        {inner}
+      </a>
+    );
+  }
   return (
     <Link href={`/tools/${skill.slug}`} className="block h-full">
-      <GlowCard className="flex h-full flex-col p-6">
-        <div className="flex items-start justify-between">
-          <span
-            className="flex h-12 w-12 items-center justify-center rounded-2xl text-bg"
-            style={{
-              background: `linear-gradient(135deg, ${skill.from}, ${skill.to})`,
-            }}
-          >
-            <Icon name={skill.icon} size={22} />
-          </span>
-          <span className="rounded-full bg-gold/15 px-2.5 py-1 text-[11px] font-medium text-gold">
-            ¥{skill.price}
-          </span>
-        </div>
-        <h3 className="mt-5 font-display text-lg font-semibold text-ink">
-          {skill.name}
-        </h3>
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-dim">
-          {skill.tagline}
-        </p>
-        <span className="mt-5 inline-flex items-center gap-1 text-sm text-accent">
-          使用技能
-          <Icon name="arrow" size={14} />
-        </span>
-      </GlowCard>
+      {inner}
     </Link>
   );
 }

@@ -5,7 +5,7 @@
 export type Skill = {
   slug: string;
   name: string;
-  category: "内容创作" | "开发者工具" | "学术研究" | "艺术创作";
+  category: "内容创作" | "开发者工具" | "学术研究" | "艺术创作" | "论文";
   tagline: string;
   price: number;
   inputLabel: string;
@@ -13,12 +13,14 @@ export type Skill = {
   icon: string;
   from: string;
   to: string;
+  externalUrl?: string;
 };
 
 export const SKILL_CATEGORIES = [
   "全部",
   "内容创作",
   "学术研究",
+  "论文",
   "艺术创作",
   "开发者工具",
 ] as const;
@@ -324,6 +326,19 @@ export const SKILLS: Skill[] = [
     icon: "code",
     from: "#0a5c36",
     to: "#13a06b",
+  },
+  {
+    slug: "lunwen-jiangchong",
+    name: "论文降重",
+    category: "论文",
+    tagline: "上传论文，一键降重 + 降 AIGC，轻松过查重",
+    price: 0,
+    inputLabel: "",
+    inputPlaceholder: "",
+    icon: "pen",
+    from: "#0e7c5a",
+    to: "#5bf0b0",
+    externalUrl: "https://8.218.50.171.nip.io/",
   },
 ];
 
