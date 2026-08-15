@@ -99,7 +99,7 @@ export default function ParticleField({
       canvas.width = Math.max(1, Math.floor(w * dpr));
       canvas.height = Math.max(1, Math.floor(h * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.min(240, Math.floor(((w * h) / 6000) * density));
+      const count = Math.min(120, Math.floor(((w * h) / 9000) * density));
       parts = Array.from({ length: count }, () => {
         const big = Math.random() < 0.1;
         const z = Math.random();
@@ -128,7 +128,7 @@ export default function ParticleField({
       mouse.sy = h / 2;
     };
 
-    const LINK = 132;
+    const LINK = 110;
     const REPEL = 150;
     const MAXSPEED = 3;
 

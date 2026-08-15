@@ -30,7 +30,7 @@ export default function GlowCard({
       ref={ref}
       onMouseMove={onMove}
       className={cn(
-        "group relative overflow-hidden rounded-3xl border border-line bg-bg2/50 backdrop-blur transition-colors duration-300 hover:border-accent/40",
+        "group relative overflow-hidden rounded-3xl border border-line bg-bg2/80 transition-colors duration-300 hover:border-accent/40",
         className
       )}
     >
