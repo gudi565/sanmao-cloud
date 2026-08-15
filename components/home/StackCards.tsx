@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef } from "react";
-import { gsap, useGSAP } from "@/lib/gsap";
 import Icon from "../Icon";
 import SectionHeading from "../SectionHeading";
 
@@ -33,39 +31,12 @@ const STEPS = [
 ];
 
 /**
- * 学习路径 · Sticky 堆叠卡片
- * 每张卡片 sticky 钉在屏幕上方、z 逐级抬升，下一张滑入时
- * 前一张随滚动平滑缩小，形成层层堆叠的展开节奏。
+ * 学习路径 · 垂直卡片区
+ * 4 张卡片依次展示，进入视区时由 Reveal 淡入（不再 sticky 堆叠，避免滚动卡顿）。
  */
 export default function StackCards() {
-  const root = useRef<HTMLElement>(null);
-
-  useGSAP(
-    () => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const cards = gsap.utils.toArray<HTMLElement>(".stack-card");
-      const total = cards.length;
-      // 前一张在「下一张滑入覆盖」的过程中缩到目标尺寸
-      cards.forEach((card, i) => {
-        if (i === total - 1) return;
-        const target = 1 - (total - 1 - i) * 0.05;
-        gsap.to(card, {
-          scale: target,
-          ease: "none",
-          scrollTrigger: {
-            trigger: cards[i + 1],
-            start: "top bottom",
-            end: "top top",
-            scrub: true,
-          },
-        });
-      });
-    },
-    { scope: root }
-  );
-
   return (
-    <section ref={root} className="relative z-10 mx-auto max-w-7xl px-6 pt-20 pb-8 sm:pt-24">
+    <section className="relative z-10 mx-auto max-w-7xl px-6 pt-20 pb-8 sm:pt-24">
       <SectionHeading
         eyebrow="学习路径"
         title={
@@ -80,15 +51,9 @@ export default function StackCards() {
         {STEPS.map((s, i) => (
           <div
             key={s.no}
-            className="stack-card sticky top-[var(--ctop)] z-[var(--cz)] mx-auto w-full max-w-5xl will-change-transform"
-            style={
-              {
-                ["--ctop" as string]: `${84 + i * 24}px`,
-                ["--cz" as string]: `${i + 1}`,
-              } as React.CSSProperties
-            }
+            className="mx-auto w-full max-w-5xl"
           >
-            <div className="relative overflow-hidden rounded-[2rem] border border-line bg-bg2/70 p-7 backdrop-blur-xl sm:p-10">
+            <div className="relative overflow-hidden rounded-[2rem] border border-line bg-bg2/70 p-7 sm:p-10">
               {/* 角落辉光 */}
               <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(91,240,176,0.16),transparent_70%)] blur-2xl" />
               <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
