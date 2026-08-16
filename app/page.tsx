@@ -1,5 +1,6 @@
 import Hero from "@/components/home/Hero";
 import MarqueeBand from "@/components/home/MarqueeBand";
+import AITrial from "@/components/home/AITrial";
 import Entries from "@/components/home/Entries";
 import FeaturedCourses from "@/components/home/FeaturedCourses";
 import StackCards from "@/components/home/StackCards";
@@ -14,6 +15,7 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <AITrial />
       <MarqueeBand />
       <Entries />
       <FeaturedCourses />
