@@ -53,7 +53,7 @@ export default function Loader() {
   return (
     <div
       ref={overlay}
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg"
+      className="pointer-events-none fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg"
     >
       <div className="loader-content flex flex-col items-center gap-8">
         <div className="scale-125">

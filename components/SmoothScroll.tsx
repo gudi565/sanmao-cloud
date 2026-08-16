@@ -23,6 +23,8 @@ export default function SmoothScroll() {
       smoothWheel: true,
       touchMultiplier: 1.5,
     });
+    // 暴露到 window 方便调试和诊断
+    (window as unknown as { lenis: Lenis }).lenis = lenis;
 
     lenis.on("scroll", ScrollTrigger.update);
 
