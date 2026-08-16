@@ -17,9 +17,9 @@ export default function ProductShowcase() {
   useGSAP(
     () => {
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
       // 进场：淡入上浮（标签页后台时跳过，避免留在 opacity:0）
+      // 性能优化:砍掉鼠标视差 quickTo(4个/帧是滚动卡顿主因之一)
       if (!reduce && !document.hidden) {
         gsap.from(".showcase-rise", {
           y: 44,
@@ -30,24 +30,6 @@ export default function ProductShowcase() {
           scrollTrigger: { trigger: root.current, start: "top 78%" },
         });
       }
-
-      if (reduce || !fine) return;
-
-      const xD = gsap.quickTo(desktop.current, "x", { duration: 1.2, ease: "power3" });
-      const yD = gsap.quickTo(desktop.current, "y", { duration: 1.2, ease: "power3" });
-      const xP = gsap.quickTo(phone.current, "x", { duration: 1, ease: "power3" });
-      const yP = gsap.quickTo(phone.current, "y", { duration: 1, ease: "power3" });
-
-      const onMove = (e: MouseEvent) => {
-        const nx = e.clientX / window.innerWidth - 0.5;
-        const ny = e.clientY / window.innerHeight - 0.5;
-        xD(nx * -28);
-        yD(ny * -18);
-        xP(nx * 54);
-        yP(ny * 38);
-      };
-      window.addEventListener("mousemove", onMove, { passive: true });
-      return () => window.removeEventListener("mousemove", onMove);
     },
     { scope: root }
   );

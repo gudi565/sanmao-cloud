@@ -132,8 +132,24 @@ export default function ParticleField({
     const REPEL = 150;
     const MAXSPEED = 3;
 
+    // 性能优化:滚动时暂停粒子渲染(减少主线程压力)
+    let scrolling = false;
+    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      scrolling = true;
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => { scrolling = false; }, 200);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
     const frame = () => {
       t += 0.016;
+      if (scrolling) {
+        // 滚动中:只清画布不更新,避免和 Lenis/GSAP 抢帧
+        ctx.clearRect(0, 0, w, h);
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       ctx.clearRect(0, 0, w, h);
 
       if (mouse.has) {
@@ -279,6 +295,7 @@ export default function ParticleField({
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseout", onLeave);
     };

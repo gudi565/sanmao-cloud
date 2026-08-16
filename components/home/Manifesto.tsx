@@ -5,7 +5,7 @@ import AnimatedText from "../AnimatedText";
  */
 export default function Manifesto() {
   return (
-    <section className="relative mx-auto max-w-5xl px-6 py-28 sm:py-36">
+    <section className="relative mx-auto max-w-5xl px-6 py-20 sm:py-24">
       <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs tracking-wide text-accent">
         <span className="h-1 w-1 rounded-full bg-accent animate-pulse-glow" />
         我们的理念

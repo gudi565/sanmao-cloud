@@ -26,7 +26,6 @@ export default function Hero() {
   useGSAP(
     () => {
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
       if (!reduce && !document.hidden) {
         const tl = gsap.timeline({ delay: 0.35 });
@@ -39,23 +38,7 @@ export default function Hero() {
         });
       }
 
-      if (!fine || reduce) return;
-
-      const xOrb = gsap.quickTo(orb.current, "x", { duration: 1.3, ease: "power3" });
-      const yOrb = gsap.quickTo(orb.current, "y", { duration: 1.3, ease: "power3" });
-      const xC = gsap.quickTo(content.current, "x", { duration: 1.1, ease: "power3" });
-      const yC = gsap.quickTo(content.current, "y", { duration: 1.1, ease: "power3" });
-
-      const onMove = (e: MouseEvent) => {
-        const nx = e.clientX / window.innerWidth - 0.5;
-        const ny = e.clientY / window.innerHeight - 0.5;
-        xOrb(nx * 70);
-        yOrb(ny * 70);
-        xC(nx * -16);
-        yC(ny * -12);
-      };
-      window.addEventListener("mousemove", onMove, { passive: true });
-      return () => window.removeEventListener("mousemove", onMove);
+      // 性能优化:砍掉辉光球/文案的鼠标视差(4个quickTo/帧是卡顿主因)
     },
     { scope: root }
   );

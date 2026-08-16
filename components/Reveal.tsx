@@ -37,11 +37,16 @@ export default function Reveal({
       const root = container.current;
       if (!root) return;
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      // 页面不可见时（如标签页在后台）不隐藏内容，保证始终可见
       if (document.hidden) return;
 
+      // 性能优化:只对标题级别做 Reveal,大量卡片直接显示
+      // (多个 ScrollTrigger 同时触发是滚动卡顿的主因)
       const items = root.querySelectorAll<HTMLElement>("[data-r]");
-      const targets = items.length ? items : root;
+      const targets: Element[] = items.length ? Array.from(items) : [root];
+
+      // 如果目标太多(>6),不做动画直接显示——避免批量触发卡顿
+      if (targets.length > 6) return;
+
       gsap.from(targets, {
         y,
         opacity: 0,

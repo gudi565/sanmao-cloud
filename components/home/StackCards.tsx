@@ -36,7 +36,7 @@ const STEPS = [
  */
 export default function StackCards() {
   return (
-    <section className="relative z-10 mx-auto max-w-7xl px-6 pt-20 pb-8 sm:pt-24">
+    <section className="relative z-10 mx-auto max-w-7xl px-6 pt-16 pb-6 sm:pt-20">
       <SectionHeading
         eyebrow="学习路径"
         title={
@@ -53,27 +53,27 @@ export default function StackCards() {
             key={s.no}
             className="mx-auto w-full max-w-5xl"
           >
-            <div className="relative overflow-hidden rounded-[2rem] border border-line bg-bg2/70 p-7 sm:p-10">
+            <div className="relative overflow-hidden rounded-[1.5rem] border border-line bg-bg2/70 p-6 sm:p-7">
               {/* 角落辉光 */}
               <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(91,240,176,0.16),transparent_70%)] blur-2xl" />
-              <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="max-w-xl">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line bg-surface text-accent">
-                      <Icon name={s.icon} size={24} />
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-accent">
+                      <Icon name={s.icon} size={20} />
                     </span>
                     <span className="text-xs uppercase tracking-[0.25em] text-dim">
                       路径 · {s.no}
                     </span>
                   </div>
-                  <h3 className="mt-6 font-display text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
+                  <h3 className="mt-4 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
                     {s.title}
                   </h3>
-                  <p className="mt-4 text-base leading-relaxed text-dim sm:text-lg">
+                  <p className="mt-3 text-sm leading-relaxed text-dim">
                     {s.desc}
                   </p>
                 </div>
-                <span className="font-display text-[5.5rem] font-black leading-none text-white/[0.06] sm:text-[9rem]">
+                <span className="font-display text-4rem font-black leading-none text-white/[0.06] sm:text-6rem">
                   {s.no}
                 </span>
               </div>

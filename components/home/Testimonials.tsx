@@ -6,7 +6,7 @@ import { TESTIMONIALS } from "@/lib/data";
 
 export default function Testimonials() {
   return (
-    <section className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:py-28">
+    <section className="relative z-10 mx-auto max-w-7xl px-6 py-16 sm:py-20">
       <SectionHeading
         eyebrow="学员口碑"
         title={

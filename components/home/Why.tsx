@@ -12,7 +12,7 @@ const FEATURES = [
 
 export default function Why() {
   return (
-    <section className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:py-28">
+    <section className="relative z-10 mx-auto max-w-7xl px-6 py-16 sm:py-20">
       <SectionHeading
         eyebrow="为什么是三猫云"
         title={
